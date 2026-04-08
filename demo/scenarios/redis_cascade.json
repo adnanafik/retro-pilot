@@ -1,0 +1,223 @@
+{
+  "id": "redis-cascade",
+  "label": "Redis Cascade (SEV1)",
+  "incident": {
+    "id": "INC-2026-0142",
+    "title": "Redis connection pool exhaustion in auth-service",
+    "severity": "SEV1",
+    "started_at": "2026-01-15T14:00:00+00:00",
+    "resolved_at": "2026-01-15T14:47:00+00:00",
+    "affected_services": ["auth-service", "payment-service", "session-service"],
+    "involved_repos": ["acme/auth-service"],
+    "slack_channel": "#incident-2026-0142",
+    "metrics_namespace": "auth-service",
+    "reported_by": "oncall-engineer"
+  },
+  "similar_incidents_retrieved": [
+    {
+      "id": "INC-2026-0089",
+      "title": "Redis pool exhaustion in session-service",
+      "similarity_score": 0.87,
+      "root_cause_primary": "Connection pool exhausted in session-service",
+      "action_items_completed": false
+    }
+  ],
+  "pipeline_steps": [
+    {
+      "agent": "EvidenceCollector",
+      "status": "running",
+      "timestamp": "2026-01-15T15:02:00+00:00",
+      "output": "Starting parallel evidence collection for INC-2026-0142",
+      "sub_steps": [
+        {"worker": "LogWorker", "status": "complete", "lines_fetched": 847},
+        {"worker": "MetricsWorker", "status": "complete", "datapoints_fetched": 180},
+        {"worker": "GitWorker", "status": "complete", "events_fetched": 3},
+        {"worker": "SlackWorker", "status": "complete", "messages_fetched": 24}
+      ]
+    },
+    {
+      "agent": "EvidenceCollector",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:02:18+00:00",
+      "output": "Evidence collected: 847 log lines, 180 metric datapoints, 3 git events, 24 Slack messages. Gaps: none."
+    },
+    {
+      "agent": "TimelineBuilder",
+      "status": "running",
+      "timestamp": "2026-01-15T15:02:19+00:00",
+      "output": "Correlating events across 4 sources..."
+    },
+    {
+      "agent": "TimelineBuilder",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:02:31+00:00",
+      "output": "Timeline built: 8 events. First signal at 14:01 (pool utilisation metric at 82%). Detection lag: 11 minutes.",
+      "timeline": {
+        "first_signal_at": "2026-01-15T14:01:00+00:00",
+        "detection_lag_minutes": 11,
+        "resolution_duration_minutes": 47,
+        "events": [
+          {"timestamp": "2026-01-15T14:01:00+00:00", "description": "Metric: connection_pool_utilisation = 82% (approaching limit)", "source": "metric", "significance": "high"},
+          {"timestamp": "2026-01-15T14:02:00+00:00", "description": "[auth-service] Connection pool utilisation at 85%", "source": "log", "significance": "high"},
+          {"timestamp": "2026-01-15T14:00:00+00:00", "description": "Git deploy: auth-service v2.3.1 — dependency bump only", "source": "git", "significance": "low"},
+          {"timestamp": "2026-01-15T14:05:00+00:00", "description": "[auth-service] CRITICAL: Connection pool exhausted — timeout waiting for slot", "source": "log", "significance": "critical"},
+          {"timestamp": "2026-01-15T14:07:00+00:00", "description": "[payment-service] Upstream auth-service timeout after 5000ms", "source": "log", "significance": "critical"},
+          {"timestamp": "2026-01-15T14:09:00+00:00", "description": "[session-service] Auth token validation failing — upstream unavailable", "source": "log", "significance": "critical"},
+          {"timestamp": "2026-01-15T14:12:00+00:00", "description": "[Slack] oncall: Incident declared — auth-service 503s. PagerDuty triggered.", "source": "slack", "significance": "high"},
+          {"timestamp": "2026-01-15T14:47:00+00:00", "description": "[Slack] oncall: Resolved — pool size increased to 200, services recovering.", "source": "slack", "significance": "critical"}
+        ]
+      }
+    },
+    {
+      "agent": "RootCauseAnalyst",
+      "status": "running",
+      "timestamp": "2026-01-15T15:02:32+00:00",
+      "output": "Analysing root cause. Similar incident INC-2026-0089 retrieved — checking action item completion..."
+    },
+    {
+      "agent": "RootCauseAnalyst",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:02:58+00:00",
+      "output": "Root cause identified with HIGH confidence.",
+      "root_cause": {
+        "primary": "Redis connection pool exhaustion in auth-service caused cascading timeouts to payment-service and session-service",
+        "contributing_factors": [
+          "Pool size (50 connections) was not reviewed after user traffic tripled over 6 months",
+          "No pool saturation alert existed — the metric was being collected but not monitored",
+          "INC-2026-0089 (session-service, same pattern) had an action item to review all pool sizes — this was not completed"
+        ],
+        "trigger": "Marketing campaign launched at 14:00 increased concurrent login rate 4x, exhausting the fixed connection pool within 5 minutes",
+        "blast_radius": "payment-service (all checkout flows) and session-service (all active sessions) — estimated 12,000 affected users",
+        "confidence": "HIGH",
+        "evidence_refs": ["log:auth-service:14:05", "metric:connection_pool_utilisation:14:05", "slack:14:12"]
+      }
+    },
+    {
+      "agent": "ActionItemGenerator",
+      "status": "running",
+      "timestamp": "2026-01-15T15:02:59+00:00",
+      "output": "Generating action items. Escalating priority — INC-2026-0089 action items were not completed."
+    },
+    {
+      "agent": "ActionItemGenerator",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:03:12+00:00",
+      "output": "4 action items generated (3 P1 due to incomplete prior incident action items).",
+      "action_items": [
+        {
+          "title": "Increase Redis connection pool size from 50 to 200",
+          "owner_role": "Platform team",
+          "deadline_days": 7,
+          "priority": "P1",
+          "type": "prevention",
+          "acceptance_criteria": "Pool size 200, load test at 5x current peak passes with <5% error rate in staging before prod deploy"
+        },
+        {
+          "title": "Audit all service connection pool sizes against current traffic levels",
+          "owner_role": "Platform team",
+          "deadline_days": 7,
+          "priority": "P1",
+          "type": "prevention",
+          "acceptance_criteria": "All 12 services have pool size reviewed and documented. Sizes set to handle 3x current peak. Reviewed in platform sync."
+        },
+        {
+          "title": "Add connection pool saturation alert (threshold: >80% for 5 minutes)",
+          "owner_role": "Platform team",
+          "deadline_days": 14,
+          "priority": "P1",
+          "type": "detection",
+          "acceptance_criteria": "PagerDuty alert fires within 1 minute of pool utilisation exceeding 80% for 5 minutes. Tested in staging."
+        },
+        {
+          "title": "Complete and close INC-2026-0089 action items",
+          "owner_role": "Engineering manager",
+          "deadline_days": 7,
+          "priority": "P1",
+          "type": "documentation",
+          "acceptance_criteria": "All INC-2026-0089 action items marked complete with evidence, or formally deferred with new owner and deadline."
+        }
+      ]
+    },
+    {
+      "agent": "PostMortemWriter",
+      "status": "running",
+      "timestamp": "2026-01-15T15:03:13+00:00",
+      "output": "Writing executive summary and lessons learned..."
+    },
+    {
+      "agent": "PostMortemWriter",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:03:29+00:00",
+      "output": "Draft post-mortem assembled."
+    },
+    {
+      "agent": "EvaluatorAgent",
+      "status": "running",
+      "timestamp": "2026-01-15T15:03:30+00:00",
+      "output": "Evaluating draft against 5-dimension rubric..."
+    },
+    {
+      "agent": "EvaluatorAgent",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:03:41+00:00",
+      "output": "Score: 0.74 — REVISION REQUESTED",
+      "evaluation": {
+        "total": 0.74,
+        "timeline_completeness": 0.90,
+        "root_cause_clarity": 0.95,
+        "action_item_quality": 0.90,
+        "executive_summary_clarity": 0.55,
+        "similar_incidents_referenced": 0.90,
+        "passed": false,
+        "revision_brief": "Executive summary contains technical jargon ('connection pool', 'upstream timeout'). Rewrite for a non-technical VP: what happened to users, how long, what fixed it. Current version would not be understood without engineering context.",
+        "revision_number": 0
+      }
+    },
+    {
+      "agent": "PostMortemWriter",
+      "status": "running",
+      "timestamp": "2026-01-15T15:03:42+00:00",
+      "output": "Revision 1: rewriting executive summary with feedback..."
+    },
+    {
+      "agent": "PostMortemWriter",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:03:54+00:00",
+      "output": "Revised draft ready."
+    },
+    {
+      "agent": "EvaluatorAgent",
+      "status": "running",
+      "timestamp": "2026-01-15T15:03:55+00:00",
+      "output": "Re-evaluating revised draft..."
+    },
+    {
+      "agent": "EvaluatorAgent",
+      "status": "complete",
+      "timestamp": "2026-01-15T15:04:06+00:00",
+      "output": "Score: 0.91 — PASSED",
+      "evaluation": {
+        "total": 0.91,
+        "timeline_completeness": 0.90,
+        "root_cause_clarity": 0.95,
+        "action_item_quality": 0.90,
+        "executive_summary_clarity": 0.88,
+        "similar_incidents_referenced": 0.90,
+        "passed": true,
+        "revision_brief": null,
+        "revision_number": 1
+      }
+    }
+  ],
+  "postmortem_final": {
+    "executive_summary": "On January 15th, three of our customer-facing services were unavailable for 47 minutes, affecting approximately 12,000 users during checkout and login. The outage was triggered by a sudden spike in user activity that exceeded a hard capacity limit that had not been updated as our user base grew. The capacity limit has been increased and an automated warning system added to alert the team before similar limits are reached in future.",
+    "lessons_learned": [
+      "Capacity limits set for yesterday's traffic become tomorrow's outages — limits must be reviewed whenever traffic grows by more than 50%.",
+      "An unresolved action item from a previous incident (INC-2026-0089) directly contributed to this outage recurring. Incomplete action items from post-mortems should be tracked to closure.",
+      "Detection lag of 11 minutes is too high for a SEV1 — leading indicator alerts (resource utilisation at 80%) would have given time to act before user impact."
+    ],
+    "similar_incidents": ["INC-2026-0089"],
+    "revision_count": 1,
+    "draft": true
+  }
+}
