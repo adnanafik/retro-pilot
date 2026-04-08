@@ -238,3 +238,89 @@ def test_evaluator_agent_calls_llm_for_revision_brief_on_fail():
 def test_evaluator_agent_describe():
     agent = EvaluatorAgent()
     assert "LLM-as-judge" in agent.describe() or "evaluator" in agent.describe().lower()
+
+
+def test_scorer_timeline_zero_events_scores_very_low():
+    pm = make_strong_postmortem()
+    pm = pm.model_copy(update={"timeline": pm.timeline.model_copy(update={"events": []})})
+    score = score_postmortem(pm, knowledge_base_size=0)
+    assert score.timeline_completeness < 0.40
+
+
+def test_scorer_timeline_zero_detection_lag_penalised():
+    pm = make_strong_postmortem()
+    pm = pm.model_copy(update={
+        "timeline": pm.timeline.model_copy(update={"detection_lag_minutes": 0})
+    })
+    score = score_postmortem(pm, knowledge_base_size=0)
+    assert score.timeline_completeness < 1.0
+
+
+def test_scorer_root_cause_no_evidence_refs_penalised():
+    pm = make_strong_postmortem()
+    rc = pm.root_cause.model_copy(update={"evidence_refs": []})
+    pm = pm.model_copy(update={"root_cause": rc})
+    score = score_postmortem(pm, knowledge_base_size=0)
+    assert score.root_cause_clarity < 0.90
+
+
+def test_scorer_root_cause_multi_sentence_primary_penalised():
+    pm = make_strong_postmortem()
+    rc = pm.root_cause.model_copy(update={
+        "primary": "First sentence of root cause. Second sentence adds more detail."
+    })
+    pm = pm.model_copy(update={"root_cause": rc})
+    score = score_postmortem(pm, knowledge_base_size=0)
+    assert score.root_cause_clarity < 1.0
+
+
+def test_scorer_executive_summary_jargon_penalised():
+    pm = make_strong_postmortem()
+    pm = pm.model_copy(update={
+        "executive_summary": "The RCA showed p99 latency spikes. MTTR was 47 minutes. SLO was breached."
+    })
+    score = score_postmortem(pm, knowledge_base_size=0)
+    assert score.executive_summary_clarity <= 0.70
+
+
+def test_scorer_executive_summary_too_short_penalised():
+    pm = make_strong_postmortem()
+    pm = pm.model_copy(update={"executive_summary": "Short."})
+    score = score_postmortem(pm, knowledge_base_size=0)
+    assert score.executive_summary_clarity < 1.0
+
+
+def test_scorer_all_action_items_missing_criteria_scores_low():
+    pm = make_strong_postmortem()
+    bad_items = [
+        ai.model_copy(update={"acceptance_criteria": ""})
+        for ai in pm.action_items
+    ]
+    pm = pm.model_copy(update={"action_items": bad_items})
+    score = score_postmortem(pm, knowledge_base_size=0)
+    assert score.action_item_quality < 0.60
+
+
+def test_scorer_action_item_very_short_deadline_penalised():
+    pm = make_strong_postmortem()
+    short_deadline_items = [
+        pm.action_items[0].model_copy(update={"deadline_days": 1}),
+    ] + pm.action_items[1:]
+    pm = pm.model_copy(update={"action_items": short_deadline_items})
+    score = score_postmortem(pm, knowledge_base_size=0)
+    # Score should be slightly lower due to short deadline penalty
+    strong_score = score_postmortem(make_strong_postmortem(), knowledge_base_size=0)
+    assert score.action_item_quality <= strong_score.action_item_quality
+
+
+def test_score_total_matches_weighted_sum():
+    pm = make_strong_postmortem()
+    score = score_postmortem(pm, knowledge_base_size=10)
+    expected = (
+        score.timeline_completeness * WEIGHTS["timeline_completeness"]
+        + score.root_cause_clarity * WEIGHTS["root_cause_clarity"]
+        + score.action_item_quality * WEIGHTS["action_item_quality"]
+        + score.executive_summary_clarity * WEIGHTS["executive_summary_clarity"]
+        + score.similar_incidents_referenced * WEIGHTS["similar_incidents_referenced"]
+    )
+    assert abs(score.total - round(expected, 3)) < 0.001

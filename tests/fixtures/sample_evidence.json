@@ -1,0 +1,62 @@
+{
+  "logs": [
+    {
+      "timestamp": "2026-01-15T14:02:00+00:00",
+      "level": "WARN",
+      "service": "auth-service",
+      "message": "Connection pool utilisation at 85%"
+    },
+    {
+      "timestamp": "2026-01-15T14:05:00+00:00",
+      "level": "ERROR",
+      "service": "auth-service",
+      "message": "Connection pool exhausted — timeout waiting for available slot"
+    },
+    {
+      "timestamp": "2026-01-15T14:07:00+00:00",
+      "level": "ERROR",
+      "service": "payment-service",
+      "message": "Upstream auth-service request timeout after 5000ms"
+    }
+  ],
+  "metrics": [
+    {
+      "timestamp": "2026-01-15T14:01:00+00:00",
+      "metric_name": "connection_pool_utilisation",
+      "value": 82.0,
+      "unit": "Percent"
+    },
+    {
+      "timestamp": "2026-01-15T14:05:00+00:00",
+      "metric_name": "connection_pool_utilisation",
+      "value": 100.0,
+      "unit": "Percent"
+    }
+  ],
+  "git_events": [
+    {
+      "timestamp": "2026-01-15T13:00:00+00:00",
+      "commit_sha": "abc1234567890",
+      "author": "deploy-bot@acme.com",
+      "message": "Deploy auth-service v2.3.1 — no code changes, dependency bump",
+      "repo": "acme/auth-service",
+      "type": "deploy"
+    }
+  ],
+  "slack_messages": [
+    {
+      "timestamp": "2026-01-15T14:12:00+00:00",
+      "author": "oncall-engineer",
+      "text": "Incident declared — auth-service returning 503s. Investigating.",
+      "thread_ts": "1705327920.000100"
+    },
+    {
+      "timestamp": "2026-01-15T14:47:00+00:00",
+      "author": "oncall-engineer",
+      "text": "Incident resolved — increased connection pool size to 200. Monitoring.",
+      "thread_ts": "1705327920.000200"
+    }
+  ],
+  "collected_at": "2026-01-15T15:00:00+00:00",
+  "gaps": []
+}

@@ -47,3 +47,13 @@ def test_evidence_collector_gaps_list_is_present():
     collector = EvidenceCollector()
     result = collector.run(make_incident(), demo_mode=True)
     assert isinstance(result.gaps, list)
+
+
+def test_evidence_collector_handles_worker_exception_gracefully():
+    """If one worker raises, the gap is recorded and other workers still return data."""
+    from unittest.mock import AsyncMock, patch
+    collector = EvidenceCollector()
+    with patch.object(collector, "_run_slack_worker", new_callable=AsyncMock, side_effect=RuntimeError("Slack down")):
+        result = collector.run(make_incident(), demo_mode=True)
+    assert isinstance(result, Evidence)
+    assert any("slack" in g.lower() for g in result.gaps)

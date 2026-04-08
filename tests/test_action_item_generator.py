@@ -64,3 +64,60 @@ def test_action_items_cover_multiple_types():
 def test_action_item_generator_describe():
     gen = ActionItemGenerator()
     assert "action" in gen.describe().lower()
+
+
+def test_action_item_generator_adds_escalation_for_similar_incidents():
+    """When similar incidents exist, a review item is added (similar_incidents branch)."""
+    from datetime import UTC, datetime
+
+    from shared.models import (
+        Incident,
+        PostMortem,
+        RootCause,
+        Timeline,
+    )
+
+    now = datetime(2026, 1, 15, 14, 0, 0, tzinfo=UTC)
+    prior_incident = Incident(
+        id="INC-2026-0089", title="Prior Redis exhaustion",
+        severity="SEV2", started_at=now,
+        resolved_at=datetime(2026, 1, 15, 15, 0, tzinfo=UTC),
+        affected_services=["auth-service"], involved_repos=[],
+        slack_channel="#incidents", reported_by="oncall",
+    )
+    prior_timeline = Timeline(
+        events=[], first_signal_at=now, detection_lag_minutes=5, resolution_duration_minutes=60,
+    )
+    prior_rc = RootCause(
+        primary="Redis pool exhausted", contributing_factors=[],
+        trigger="Traffic spike", blast_radius="api", confidence="LOW", evidence_refs=[],
+    )
+    prior_pm = PostMortem(
+        incident=prior_incident,
+        executive_summary="Prior outage summary.",
+        timeline=prior_timeline,
+        root_cause=prior_rc,
+        action_items=[],
+        lessons_learned=[],
+        similar_incidents=[],
+        generated_at=now,
+    )
+
+    gen = ActionItemGenerator()
+    result = gen.run(
+        root_cause=make_root_cause(),
+        similar_incidents=[prior_pm],
+        demo_mode=True,
+    )
+    titles = [ai.title for ai in result]
+    assert any("INC-2026-0089" in t for t in titles), \
+        "Expected escalation action item referencing prior incident"
+
+
+def test_action_item_generator_llm_path_falls_back_to_demo():
+    """LLM path (_generate_with_llm) calls _demo_action_items as fallback."""
+    gen = ActionItemGenerator()
+    # No backend set — LLM path returns demo items
+    result = gen.run(root_cause=make_root_cause(), similar_incidents=[], demo_mode=False)
+    assert isinstance(result, list)
+    assert len(result) > 0
