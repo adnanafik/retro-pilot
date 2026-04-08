@@ -1,3 +1,41 @@
 
 # Git worktrees
 .worktrees/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Environment
+.env
+*.env.local
+venv/
+venv311/
+.venv/
+
+# Runtime artifacts (never commit)
+chroma_db/
+audit/
+postmortems/
+watcher_state/
+
+# Local config (template is retro-pilot.example.yml)
+retro-pilot.yml
+
+# IDE
+.DS_Store
+.idea/
+.vscode/

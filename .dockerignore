@@ -1,0 +1,17 @@
+.git
+.gitignore
+.worktrees
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+chroma_db
+audit
+postmortems
+docs
+.env
+*.egg-info
+dist
+build
+README.md
