@@ -13,23 +13,24 @@ class SlidingWindowRateLimiter:
         self._max = max_calls_per_hour
         self._window: deque[float] = deque()
 
+    def _evict(self) -> None:
+        cutoff = time.time() - 3600
+        while self._window and self._window[0] < cutoff:
+            self._window.popleft()
+
     def check_and_consume(self) -> bool:
         if self._max == 0:
             return True
-        now = time.time()
-        cutoff = now - 3600
-        while self._window and self._window[0] < cutoff:
-            self._window.popleft()
+        self._evict()
         if len(self._window) >= self._max:
             return False
-        self._window.append(now)
+        self._window.append(time.time())
         return True
 
     @property
     def calls_in_window(self) -> int:
-        now = time.time()
-        cutoff = now - 3600
-        return sum(1 for t in self._window if t >= cutoff)
+        self._evict()
+        return len(self._window)
 
 
 @dataclass

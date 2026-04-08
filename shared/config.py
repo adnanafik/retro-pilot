@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 def _substitute_env(text: str) -> str:
@@ -34,6 +34,7 @@ class EvaluatorConfig(BaseModel):
 
 
 class RetroPilotConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     tenant_id: str = "default"
     llm: LLMConfig = Field(default_factory=LLMConfig)
     evaluator: EvaluatorConfig = Field(default_factory=EvaluatorConfig)

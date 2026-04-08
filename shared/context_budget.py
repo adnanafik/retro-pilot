@@ -47,7 +47,7 @@ class ContextBudget:
             new_content: list[dict] = []
             for block in content:
                 if (isinstance(block, dict) and block.get("type") == "tool_result"
-                        and not block.get("is_error")):
+                        and block.get("is_error") is not True):
                     raw_chars = len(str(block.get("content", "")))
                     new_content.append({
                         **block,

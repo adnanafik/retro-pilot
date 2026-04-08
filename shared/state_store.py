@@ -15,25 +15,29 @@ class StateStore:
     def __init__(self, path: str = "retro_pilot_state.json") -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._data: dict[str, dict] = {}
+        self._data: dict[str, dict[str, dict]] = {}
         if self.path.exists():
-            text = self.path.read_text().strip()
-            if text:
-                self._data = json.loads(text)
+            raw = self.path.read_text().strip()
+            if raw:
+                self._data = json.loads(raw)
 
     def set(self, incident_id: str, namespace: str, value: dict) -> None:
-        self._data[f"{incident_id}:{namespace}"] = value
+        if incident_id not in self._data:
+            self._data[incident_id] = {}
+        self._data[incident_id][namespace] = value
         self._flush()
 
     def get(self, incident_id: str, namespace: str) -> dict | None:
-        return self._data.get(f"{incident_id}:{namespace}")
+        return self._data.get(incident_id, {}).get(namespace)
 
     def get_all(self, incident_id: str) -> dict[str, dict]:
-        prefix = f"{incident_id}:"
-        return {k[len(prefix):]: v for k, v in self._data.items() if k.startswith(prefix)}
+        return dict(self._data.get(incident_id, {}))
 
     def delete(self, incident_id: str, namespace: str) -> None:
-        self._data.pop(f"{incident_id}:{namespace}", None)
+        if incident_id in self._data:
+            self._data[incident_id].pop(namespace, None)
+            if not self._data[incident_id]:
+                del self._data[incident_id]
         self._flush()
 
     def _flush(self) -> None:
