@@ -13,6 +13,11 @@ from typing import Any
 from tools.registry import Permission, Tool
 
 
+def _demo_active(kwarg_override: bool) -> bool:
+    """Return True if demo mode is active via kwarg or DEMO_MODE env var."""
+    return kwarg_override or os.environ.get("DEMO_MODE", "").lower() == "true"
+
+
 class GetLogsTool(Tool):
     """Fetch log entries for a service within a time window.
 
@@ -64,7 +69,7 @@ class GetLogsTool(Tool):
         demo_mode: bool = False,
         **_: Any,
     ) -> str:
-        if demo_mode or os.environ.get("DEMO_MODE", "").lower() == "true":
+        if _demo_active(demo_mode):
             return json.dumps([
                 {
                     "timestamp": start_time,
@@ -126,7 +131,7 @@ class GetMetricsTool(Tool):
         demo_mode: bool = False,
         **_: Any,
     ) -> str:
-        if demo_mode or os.environ.get("DEMO_MODE", "").lower() == "true":
+        if _demo_active(demo_mode):
             return json.dumps([
                 {
                     "timestamp": start_time,
@@ -182,7 +187,7 @@ class GetGitHistoryTool(Tool):
         demo_mode: bool = False,
         **_: Any,
     ) -> str:
-        if demo_mode or os.environ.get("DEMO_MODE", "").lower() == "true":
+        if _demo_active(demo_mode):
             return json.dumps([
                 {
                     "timestamp": "2026-01-15T13:55:00Z",
@@ -234,7 +239,7 @@ class GetSlackThreadTool(Tool):
         demo_mode: bool = False,
         **_: Any,
     ) -> str:
-        if demo_mode or os.environ.get("DEMO_MODE", "").lower() == "true":
+        if _demo_active(demo_mode):
             return json.dumps([
                 {
                     "timestamp": "2026-01-15T14:12:00Z",
@@ -276,7 +281,7 @@ class GetServiceMapTool(Tool):
         return Permission.READ_ONLY
 
     def execute(self, *, service: str, demo_mode: bool = False, **_: Any) -> str:
-        if demo_mode or os.environ.get("DEMO_MODE", "").lower() == "true":
+        if _demo_active(demo_mode):
             return json.dumps({
                 "service": service,
                 "upstream": [],

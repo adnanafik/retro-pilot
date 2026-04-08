@@ -7,11 +7,13 @@ In DEMO_MODE they simulate the action without side effects.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 
+from tools.read_tools import _demo_active
 from tools.registry import Permission, Tool
+
+_POSTMORTEMS_DIR = Path(__file__).resolve().parent.parent / "postmortems"
 
 
 class SavePostmortemTool(Tool):
@@ -57,13 +59,17 @@ class SavePostmortemTool(Tool):
         demo_mode: bool = False,
         **_: Any,
     ) -> str:
-        if demo_mode or os.environ.get("DEMO_MODE", "").lower() == "true":
+        if _demo_active(demo_mode):
             return json.dumps({
                 "status": "demo",
                 "incident_id": incident_id,
                 "message": "Post-mortem save simulated (DEMO_MODE)",
             })
-        out = Path("postmortems") / f"{incident_id}.json"
+        try:
+            json.loads(postmortem_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"postmortem_json is not valid JSON: {exc}") from exc
+        out = _POSTMORTEMS_DIR / f"{incident_id}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(postmortem_json)
         return json.dumps({"status": "saved", "path": str(out)})
@@ -111,7 +117,7 @@ class NotifyTool(Tool):
         demo_mode: bool = False,
         **_: Any,
     ) -> str:
-        if demo_mode or os.environ.get("DEMO_MODE", "").lower() == "true":
+        if _demo_active(demo_mode):
             return json.dumps({
                 "status": "demo",
                 "channel": channel,
