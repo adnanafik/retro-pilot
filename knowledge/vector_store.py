@@ -80,7 +80,8 @@ class VectorStore:
             "postmortem_json": pm.model_dump_json(),
         }
         # upsert: delete then add so we always have the latest version
-        with contextlib.suppress(Exception):
+        # suppress NotFoundError only — first store of any ID is not an error
+        with contextlib.suppress(chromadb.errors.NotFoundError):
             self._collection.delete(ids=[pm.incident.id])
         self._collection.add(
             ids=[pm.incident.id],
