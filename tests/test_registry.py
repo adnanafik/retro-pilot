@@ -1,4 +1,5 @@
 import pytest
+
 from tools.registry import Permission, Tool, ToolRegistry
 
 
