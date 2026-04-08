@@ -13,15 +13,38 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Generic, TypeVar
+from typing import Generic, Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 
 from shared.context_budget import ContextBudget
+from tools.registry import Tool
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+
+@runtime_checkable
+class LLMBackend(Protocol):
+    """Interface that all LLM backends must satisfy."""
+
+    def complete_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        system: str,
+        model: str,
+        max_tokens: int,
+    ) -> object: ...
+
+    def complete(
+        self,
+        system: str,
+        user: str,
+        model: str,
+        max_tokens: int,
+    ) -> str: ...
 
 
 class LoopOutcome(StrEnum):
@@ -65,8 +88,8 @@ class AgentLoop(Generic[T]):
 
     def __init__(
         self,
-        tools: list,  # list[Tool]
-        backend: Any,
+        tools: list[Tool],
+        backend: LLMBackend,
         domain_system_prompt: str,
         response_model: type[T],
         model: str,
@@ -74,7 +97,7 @@ class AgentLoop(Generic[T]):
         max_tokens: int = 4096,
         context_budget: ContextBudget | None = None,
     ) -> None:
-        self._tools: dict[str, Any] = {t.name: t for t in tools}
+        self._tools: dict[str, Tool] = {t.name: t for t in tools}
         self._backend = backend
         self._response_model = response_model
         self._model = model
@@ -92,6 +115,7 @@ class AgentLoop(Generic[T]):
     ) -> LoopResult[T]:
         history = list(messages)
         failed_tools: list[str] = []
+        _failed_set: set[str] = set()
         last_text = ""
 
         for turn in range(self._max_turns):
@@ -126,7 +150,7 @@ class AgentLoop(Generic[T]):
             history.append({"role": "assistant", "content": assistant_content})
 
             if not tool_uses:
-                extracted = await self._extract(history)
+                extracted = self._extract(history)
                 return LoopResult(
                     outcome=LoopOutcome.COMPLETED,
                     extracted=extracted,
@@ -143,14 +167,16 @@ class AgentLoop(Generic[T]):
                     content = f"Unknown tool: {tu.name}"
                     is_error = True
                     failed_tools.append(tu.name)
+                    _failed_set.add(tu.name)
                 else:
                     try:
                         content = tool.execute(**tu.input)
                         is_error = False
                     except Exception as exc:
-                        content = f"Tool error: {exc}"
+                        content = f"Tool error ({type(exc).__name__}): {exc}"
                         is_error = True
                         failed_tools.append(tu.name)
+                        _failed_set.add(tu.name)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tu.id,
@@ -161,10 +187,8 @@ class AgentLoop(Generic[T]):
             history.append({"role": "user", "content": tool_results})
 
             # If every registered tool has failed, abort
-            if failed_tools and all(
-                n in failed_tools for n in self._tools
-            ):
-                extracted = await self._extract(history)
+            if _failed_set >= set(self._tools):
+                extracted = self._extract(history)
                 return LoopResult(
                     outcome=LoopOutcome.TOOL_FAILURE,
                     extracted=extracted,
@@ -174,7 +198,7 @@ class AgentLoop(Generic[T]):
                 )
 
         # Turn limit
-        extracted = await self._extract(history)
+        extracted = self._extract(history)
         return LoopResult(
             outcome=LoopOutcome.TURN_LIMIT,
             extracted=extracted,
@@ -183,7 +207,7 @@ class AgentLoop(Generic[T]):
             last_assistant_text=last_text,
         )
 
-    async def _extract(self, history: list[dict]) -> T:
+    def _extract(self, history: list[dict]) -> T:
         """Second extraction call: convert full history → typed T."""
         schema_json = json.dumps(self._response_model.model_json_schema(), indent=2)
         prompt = (
@@ -210,12 +234,12 @@ class BaseAgent(abc.ABC):
 
     DEFAULT_MODEL = "claude-sonnet-4-6"
 
-    def __init__(self, backend: Any = None, model: str | None = None) -> None:
+    def __init__(self, backend: LLMBackend | None = None, model: str | None = None) -> None:
         self.backend = backend
         self.model = model or self.DEFAULT_MODEL
 
     @abc.abstractmethod
-    def run(self, *args, **kwargs): ...
+    async def run(self, *args, **kwargs): ...
 
     @abc.abstractmethod
     def describe(self) -> str: ...
