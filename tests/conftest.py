@@ -2,21 +2,25 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from shared.models import (
-    ActionItem, Evidence, GitEvent, Incident, LogEntry,
-    MetricSnapshot, PostMortem, RootCause, SlackMessage,
-    Timeline, TimelineEvent,
+    ActionItem,
+    Evidence,
+    Incident,
+    PostMortem,
+    RootCause,
+    Timeline,
+    TimelineEvent,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
-NOW = datetime(2026, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
-RESOLVED = datetime(2026, 1, 15, 14, 47, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 15, 14, 0, 0, tzinfo=UTC)
+RESOLVED = datetime(2026, 1, 15, 14, 47, 0, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -90,37 +94,37 @@ def sample_timeline() -> Timeline:
     return Timeline(
         events=[
             TimelineEvent(
-                timestamp=datetime(2026, 1, 15, 14, 1, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 1, 15, 14, 1, tzinfo=UTC),
                 description="Metric connection_pool_utilisation = 82%",
                 source="metric", significance="high",
             ),
             TimelineEvent(
-                timestamp=datetime(2026, 1, 15, 14, 2, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 1, 15, 14, 2, tzinfo=UTC),
                 description="[auth-service] Connection pool utilisation at 85%",
                 source="log", significance="high",
             ),
             TimelineEvent(
-                timestamp=datetime(2026, 1, 15, 14, 5, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 1, 15, 14, 5, tzinfo=UTC),
                 description="[auth-service] Connection pool exhausted",
                 source="log", significance="critical",
             ),
             TimelineEvent(
-                timestamp=datetime(2026, 1, 15, 14, 7, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 1, 15, 14, 7, tzinfo=UTC),
                 description="[payment-service] Upstream timeout from auth-service",
                 source="log", significance="critical",
             ),
             TimelineEvent(
-                timestamp=datetime(2026, 1, 15, 14, 12, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 1, 15, 14, 12, tzinfo=UTC),
                 description="[Slack] oncall: Incident declared",
                 source="slack", significance="high",
             ),
             TimelineEvent(
-                timestamp=datetime(2026, 1, 15, 14, 47, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 1, 15, 14, 47, tzinfo=UTC),
                 description="[Slack] oncall: Incident resolved",
                 source="slack", significance="critical",
             ),
         ],
-        first_signal_at=datetime(2026, 1, 15, 14, 1, tzinfo=timezone.utc),
+        first_signal_at=datetime(2026, 1, 15, 14, 1, tzinfo=UTC),
         detection_lag_minutes=11,
         resolution_duration_minutes=47,
     )

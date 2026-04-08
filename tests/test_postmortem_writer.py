@@ -85,3 +85,68 @@ def test_postmortem_has_lessons_learned():
     )
     assert isinstance(result.lessons_learned, list)
     assert len(result.lessons_learned) > 0
+
+
+def test_postmortem_writer_describe():
+    writer = PostMortemWriter()
+    assert "post-mortem" in writer.describe().lower() or "writer" in writer.describe().lower()
+
+
+def test_postmortem_writer_llm_path_executive_summary():
+    """LLM path: backend.complete() is called when demo_mode=False and backend is set."""
+    from unittest.mock import MagicMock
+    backend = MagicMock()
+    backend.complete.return_value = "Service was disrupted. Users were affected. Issue was fixed."
+
+    writer = PostMortemWriter(backend=backend)
+    inc, tl, rc, items = make_all_inputs()
+    result = writer.run(
+        incident=inc, timeline=tl, root_cause=rc,
+        action_items=items, similar_incidents=[], demo_mode=False,
+    )
+    assert isinstance(result, PostMortem)
+    # backend.complete should be called for both executive_summary and lessons_learned
+    assert backend.complete.call_count >= 1
+
+
+def test_postmortem_writer_llm_path_with_revision_brief():
+    """Revision brief is forwarded to the LLM prompt."""
+    from unittest.mock import MagicMock
+    backend = MagicMock()
+    backend.complete.side_effect = [
+        "Revised executive summary here.",  # executive summary call
+        '["Lesson one.", "Lesson two."]',   # lessons learned call (JSON array)
+    ]
+
+    writer = PostMortemWriter(backend=backend)
+    inc, tl, rc, items = make_all_inputs()
+    result = writer.run(
+        incident=inc, timeline=tl, root_cause=rc,
+        action_items=items, similar_incidents=[],
+        revision_brief="Improve the executive summary clarity.",
+        demo_mode=False,
+    )
+    assert isinstance(result, PostMortem)
+    # Verify revision brief was forwarded — check prompt contained "Revision feedback"
+    call_args = backend.complete.call_args_list[0]
+    user_prompt = call_args[1].get("user", "") or (call_args[0][1] if len(call_args[0]) > 1 else "")
+    assert "Revision feedback" in user_prompt or "revision_brief" in str(call_args)
+
+
+def test_postmortem_writer_llm_lessons_invalid_json_returns_raw():
+    """If LLM returns non-JSON for lessons, raw string is returned in list."""
+    from unittest.mock import MagicMock
+    backend = MagicMock()
+    backend.complete.side_effect = [
+        "Executive summary from LLM.",
+        "Not valid JSON at all — just raw text from the model.",
+    ]
+
+    writer = PostMortemWriter(backend=backend)
+    inc, tl, rc, items = make_all_inputs()
+    result = writer.run(
+        incident=inc, timeline=tl, root_cause=rc,
+        action_items=items, similar_incidents=[], demo_mode=False,
+    )
+    assert isinstance(result.lessons_learned, list)
+    assert len(result.lessons_learned) > 0

@@ -119,3 +119,40 @@ def test_orchestrator_stores_passing_postmortem(mock_vs_cls):
     orchestrator.run(make_incident())
 
     mock_vs.store.assert_called_once()
+
+
+@patch("agents.orchestrator_agent.VectorStore")
+def test_orchestrator_handles_empty_kb(mock_vs_cls):
+    mock_vs = MagicMock()
+    mock_vs.retrieve.return_value = []
+    mock_vs.count.return_value = 0
+    mock_vs_cls.return_value = mock_vs
+
+    mock_evaluator = MagicMock()
+    mock_evaluator.run.return_value = make_passing_score()
+
+    orchestrator = OrchestratorAgent(demo_mode=True)
+    orchestrator._evaluator = mock_evaluator
+
+    result = orchestrator.run(make_incident())
+    assert isinstance(result, PostMortem)
+
+
+@patch("agents.orchestrator_agent.VectorStore")
+def test_orchestrator_revision_count_increments(mock_vs_cls):
+    mock_vs = MagicMock()
+    mock_vs.retrieve.return_value = []
+    mock_vs_cls.return_value = mock_vs
+
+    mock_evaluator = MagicMock()
+    mock_evaluator.run.side_effect = [
+        make_failing_score(0),
+        make_failing_score(1),
+        make_passing_score(2),
+    ]
+
+    orchestrator = OrchestratorAgent(demo_mode=True)
+    orchestrator._evaluator = mock_evaluator
+
+    result = orchestrator.run(make_incident())
+    assert result.revision_count == 2
