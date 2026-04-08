@@ -1,0 +1,25 @@
+services:
+  test:
+    build:
+      context: .
+      target: test
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-demo-mode-no-key-needed}
+      - DEMO_MODE=true
+    profiles:
+      - test
+
+  retro-pilot-demo:
+    build:
+      context: .
+      target: app
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "8000:8000"
+    environment:
+      - DEMO_MODE=${DEMO_MODE:-true}
+    volumes:
+      - ./chroma_db:/app/chroma_db
+    restart: unless-stopped
