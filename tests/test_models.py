@@ -1,13 +1,21 @@
 # tests/test_models.py
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from pydantic import ValidationError
+
 from shared.models import (
-    Incident, Evidence, LogEntry, MetricSnapshot, GitEvent, SlackMessage,
-    TimelineEvent, Timeline, RootCause, ActionItem, PostMortem, EvaluationScore,
+    ActionItem,
+    EvaluationScore,
+    Evidence,
+    Incident,
+    PostMortem,
+    RootCause,
+    Timeline,
+    TimelineEvent,
 )
 
-NOW = datetime(2026, 1, 15, 14, 0, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 15, 14, 0, 0, tzinfo=UTC)
 
 
 def make_incident(**overrides) -> dict:
@@ -16,7 +24,7 @@ def make_incident(**overrides) -> dict:
         "title": "Redis pool exhaustion in auth-service",
         "severity": "SEV1",
         "started_at": NOW,
-        "resolved_at": datetime(2026, 1, 15, 14, 47, 0, tzinfo=timezone.utc),
+        "resolved_at": datetime(2026, 1, 15, 14, 47, 0, tzinfo=UTC),
         "affected_services": ["auth-service", "payment-service"],
         "involved_repos": ["acme/auth-service"],
         "slack_channel": "#incident-2026-0001",

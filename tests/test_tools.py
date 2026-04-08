@@ -1,15 +1,17 @@
 import json as json_module
-from pathlib import Path
 
 import pytest
 
 import tools.write_tools as write_tools_module
 from tools.read_tools import (
-    GetLogsTool, GetMetricsTool, GetGitHistoryTool,
-    GetSlackThreadTool, GetServiceMapTool,
+    GetGitHistoryTool,
+    GetLogsTool,
+    GetMetricsTool,
+    GetServiceMapTool,
+    GetSlackThreadTool,
 )
-from tools.write_tools import SavePostmortemTool, NotifyTool
 from tools.registry import Permission
+from tools.write_tools import NotifyTool, SavePostmortemTool
 
 
 def test_get_logs_tool_is_read_only():
