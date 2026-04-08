@@ -108,3 +108,19 @@ def test_to_api_dict_has_required_keys():
     assert api["name"] == "fake_read"
     assert "description" in api
     assert "input_schema" in api
+
+
+def test_get_tools_invalid_ceiling_raises():
+    r = make_registry()
+    with pytest.raises(ValueError, match="not a valid ceiling permission"):
+        r.get_tools(max_permission=Permission.DANGEROUS)
+
+
+def test_get_by_name_miss_returns_none():
+    r = make_registry()
+    assert r.get_by_name("nonexistent") is None
+
+
+def test_get_tools_empty_registry_returns_empty_list():
+    r = ToolRegistry()
+    assert r.get_tools(max_permission=Permission.WRITE) == []

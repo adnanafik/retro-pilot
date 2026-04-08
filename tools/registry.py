@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import abc
 from enum import StrEnum
+from typing import Any
 
 
 class Permission(StrEnum):
@@ -46,7 +47,7 @@ class Tool(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def input_schema(self) -> dict: ...
+    def input_schema(self) -> dict[str, Any]: ...
 
     @property
     @abc.abstractmethod
@@ -55,7 +56,7 @@ class Tool(abc.ABC):
     @abc.abstractmethod
     def execute(self, **kwargs) -> str: ...
 
-    def to_api_dict(self) -> dict:
+    def to_api_dict(self) -> dict[str, Any]:
         """Render tool definition in Anthropic tool-use API format."""
         return {
             "name": self.name,
@@ -80,7 +81,13 @@ class ToolRegistry:
         max_permission: Permission = Permission.READ_ONLY,
         include_dangerous: bool = False,
     ) -> list[Tool]:
-        max_tier = _TIER_ORDER.get(max_permission, 0)
+        if max_permission not in _TIER_ORDER:
+            raise ValueError(
+                f"'{max_permission}' is not a valid ceiling permission. "
+                f"Use READ_ONLY or WRITE; use include_dangerous=True for "
+                f"DANGEROUS and REQUIRES_CONFIRMATION tools."
+            )
+        max_tier = _TIER_ORDER[max_permission]
         result: list[Tool] = []
         for tool in self._tools.values():
             tier = _TIER_ORDER.get(tool.permission)
