@@ -1,0 +1,12 @@
+{
+  "id": "INC-2026-0001",
+  "title": "Redis connection pool exhaustion in auth-service",
+  "severity": "SEV1",
+  "started_at": "2026-01-15T14:00:00+00:00",
+  "resolved_at": "2026-01-15T14:47:00+00:00",
+  "affected_services": ["auth-service", "payment-service", "session-service"],
+  "involved_repos": ["acme/auth-service"],
+  "slack_channel": "#incident-2026-0001",
+  "metrics_namespace": "auth-service",
+  "reported_by": "oncall-engineer"
+}
