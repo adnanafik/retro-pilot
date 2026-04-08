@@ -40,7 +40,7 @@ def test_incident_invalid_severity():
 def test_evidence_gaps_default_empty():
     ev = Evidence(
         logs=[], metrics=[], git_events=[], slack_messages=[],
-        collected_at=NOW, gaps=[]
+        collected_at=NOW,
     )
     assert ev.gaps == []
 
@@ -126,3 +126,23 @@ def test_evaluation_score_fail_has_brief():
     )
     assert score.passed is False
     assert score.revision_brief is not None
+
+
+def test_evaluation_score_passed_with_brief_raises():
+    with pytest.raises(ValidationError):
+        EvaluationScore(
+            total=0.91, timeline_completeness=0.90, root_cause_clarity=0.95,
+            action_item_quality=0.90, executive_summary_clarity=0.85,
+            similar_incidents_referenced=0.90,
+            passed=True, revision_brief="This should not be here",
+        )
+
+
+def test_evaluation_score_failed_without_brief_raises():
+    with pytest.raises(ValidationError):
+        EvaluationScore(
+            total=0.72, timeline_completeness=0.60, root_cause_clarity=0.70,
+            action_item_quality=0.80, executive_summary_clarity=0.75,
+            similar_incidents_referenced=0.70,
+            passed=False, revision_brief=None,
+        )

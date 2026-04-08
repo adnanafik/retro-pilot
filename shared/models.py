@@ -7,8 +7,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field, model_validator
 
 # ── Sub-models for Evidence ────────────────────────────────────────────────────
 
@@ -78,8 +77,8 @@ class TimelineEvent(BaseModel):
 class Timeline(BaseModel):
     events: list[TimelineEvent]
     first_signal_at: datetime
-    detection_lag_minutes: int
-    resolution_duration_minutes: int
+    detection_lag_minutes: int = Field(..., ge=0)
+    resolution_duration_minutes: int = Field(..., ge=0)
 
 
 class RootCause(BaseModel):
@@ -94,7 +93,7 @@ class RootCause(BaseModel):
 class ActionItem(BaseModel):
     title: str
     owner_role: str
-    deadline_days: int
+    deadline_days: int = Field(..., ge=1)
     priority: Literal["P1", "P2", "P3"]
     type: Literal["prevention", "detection", "response", "documentation"]
     acceptance_criteria: str
@@ -112,7 +111,7 @@ class PostMortem(BaseModel):
     similar_incidents: list[str] = Field(default_factory=list)
     draft: bool = True
     generated_at: datetime
-    revision_count: int = 0
+    revision_count: int = Field(default=0, ge=0)
 
 
 # ── Evaluator output ───────────────────────────────────────────────────────────
@@ -127,3 +126,11 @@ class EvaluationScore(BaseModel):
     passed: bool
     revision_brief: str | None = None
     revision_number: int = 0
+
+    @model_validator(mode="after")
+    def revision_brief_consistent_with_passed(self) -> EvaluationScore:
+        if self.passed and self.revision_brief is not None:
+            raise ValueError("revision_brief must be None when passed is True")
+        if not self.passed and self.revision_brief is None:
+            raise ValueError("revision_brief is required when passed is False")
+        return self
