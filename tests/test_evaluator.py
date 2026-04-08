@@ -1,6 +1,8 @@
 # tests/test_evaluator.py
 from datetime import UTC, datetime
+from unittest.mock import MagicMock
 
+from agents.evaluator_agent import EvaluatorAgent
 from evaluator.rubric import PASS_THRESHOLD, WEIGHTS
 from evaluator.scorer import score_postmortem
 from shared.models import (
@@ -203,11 +205,8 @@ def test_similar_incidents_not_penalised_when_kb_small():
     assert score.passed is True
 
 
+
 # ── EvaluatorAgent tests ───────────────────────────────────────────────────────
-from unittest.mock import MagicMock
-
-from agents.evaluator_agent import EvaluatorAgent
-
 
 def make_mock_backend_for_evaluator(revision_brief_response: str) -> MagicMock:
     backend = MagicMock()
