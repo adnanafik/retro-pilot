@@ -30,6 +30,7 @@ def test_embedder_embed_many_returns_list_of_lists():
 
     assert len(result) == 2
     assert all(len(v) == 2 for v in result)
+    assert all(isinstance(v, float) for row in result for v in row)
 
 
 def test_embedder_uses_correct_model_name():
