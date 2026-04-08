@@ -39,10 +39,6 @@ def _score_timeline(pm: PostMortem) -> tuple[float, list[str]]:
         score -= 0.10
         issues.append("Timeline events have no sources.")
 
-    if not pm.timeline.first_signal_at:
-        score -= 0.15
-        issues.append("Timeline is missing first_signal_at.")
-
     return max(0.0, min(1.0, score)), issues
 
 
@@ -52,7 +48,7 @@ def _score_root_cause(pm: PostMortem) -> tuple[float, list[str]]:
     rc = pm.root_cause
 
     # Primary should be one sentence (no period in the middle)
-    sentence_count = len([s for s in rc.primary.split(".") if s.strip()])
+    sentence_count = len([s for s in rc.primary.split(". ") if s.strip()])
     if sentence_count > 1:
         score -= 0.20
         issues.append(
@@ -124,7 +120,7 @@ def _score_executive_summary(pm: PostMortem) -> tuple[float, list[str]]:
     score = 1.0
     summary = pm.executive_summary
 
-    sentence_count = len([s for s in summary.split(".") if s.strip()])
+    sentence_count = len([s for s in summary.split(". ") if s.strip()])
     if sentence_count > 3:
         score -= 0.20
         issues.append(

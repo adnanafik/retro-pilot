@@ -193,3 +193,11 @@ def test_similar_incidents_dimension_penalised_when_empty_large_kb():
     pm.similar_incidents = []
     score = score_postmortem(pm, knowledge_base_size=10)
     assert score.similar_incidents_referenced < 0.80
+
+
+def test_similar_incidents_not_penalised_when_kb_small():
+    pm = make_strong_postmortem()
+    pm.similar_incidents = []
+    score = score_postmortem(pm, knowledge_base_size=3)
+    assert score.similar_incidents_referenced == 1.0
+    assert score.passed is True
