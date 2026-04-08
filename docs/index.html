@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>retro-pilot — Autonomous Incident Post-Mortem</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #7d8590; --accent: #58a6ff;
+      --green: #3fb950; --red: #f85149; --yellow: #d29922;
+      --orange: #f0883e; --purple: #bc8cff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header .tagline { color: var(--muted); font-size: 13px; }
+    .main { display: grid; grid-template-columns: 300px 1fr; gap: 0; min-height: calc(100vh - 57px); }
+    .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; }
+    .sidebar h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .scenario-btn { display: block; width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 6px; cursor: pointer; text-align: left; margin-bottom: 8px; transition: border-color 0.2s; }
+    .scenario-btn:hover { border-color: var(--accent); }
+    .scenario-btn.active { border-color: var(--accent); background: rgba(88,166,255,0.08); }
+    .scenario-btn .label { font-weight: 500; margin-bottom: 4px; }
+    .scenario-btn .meta { font-size: 12px; color: var(--muted); }
+    .severity { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+    .SEV1 { background: rgba(248,81,73,0.2); color: var(--red); }
+    .SEV2 { background: rgba(240,136,62,0.2); color: var(--orange); }
+    .incident-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 14px; margin-bottom: 16px; }
+    .incident-card .incident-title { font-weight: 600; margin-bottom: 8px; }
+    .incident-meta { font-size: 12px; color: var(--muted); line-height: 1.8; }
+    .similar-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+    .similar-card .sim-id { font-weight: 600; font-size: 12px; color: var(--accent); }
+    .sim-score { font-size: 11px; color: var(--green); }
+    .content { padding: 20px; overflow-y: auto; }
+    .pipeline { margin-bottom: 24px; }
+    .pipeline h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+    .agent-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .agent-row:last-child { border-bottom: none; }
+    .agent-indicator { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; background: var(--border); }
+    .agent-indicator.running { background: var(--yellow); animation: pulse 1s infinite; }
+    .agent-indicator.complete { background: var(--green); }
+    .agent-indicator.failed { background: var(--red); }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .agent-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .agent-output { font-size: 12px; color: var(--muted); }
+    .eval-score { font-size: 12px; margin-top: 6px; }
+    .eval-passed { color: var(--green); }
+    .eval-failed { color: var(--yellow); }
+    .sub-steps { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .sub-step { background: var(--border); border-radius: 4px; padding: 2px 8px; font-size: 11px; }
+    .sub-step.complete { background: rgba(63,185,80,0.2); color: var(--green); }
+    .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .result-card h3 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+    .executive-summary { font-size: 14px; line-height: 1.6; color: var(--text); }
+    .timeline-event { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .timeline-event:last-child { border-bottom: none; }
+    .ev-time { color: var(--muted); flex-shrink: 0; width: 50px; }
+    .ev-sig { flex-shrink: 0; }
+    .sig-critical { color: var(--red); }
+    .sig-high { color: var(--orange); }
+    .sig-medium { color: var(--yellow); }
+    .sig-low { color: var(--muted); }
+    .root-cause-primary { font-weight: 500; margin-bottom: 10px; padding: 10px; background: var(--bg); border-radius: 4px; font-size: 13px; }
+    .contributing { margin-top: 8px; }
+    .contributing li { font-size: 12px; color: var(--muted); padding: 4px 0; list-style: none; padding-left: 16px; position: relative; }
+    .contributing li::before { content: "·"; position: absolute; left: 4px; }
+    .action-item { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .action-item:last-child { border-bottom: none; }
+    .ai-title { font-weight: 500; margin-bottom: 4px; }
+    .ai-meta { color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+    .priority { padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .P1 { background: rgba(248,81,73,0.2); color: var(--red); }
+    .P2 { background: rgba(240,136,62,0.2); color: var(--orange); }
+    .P3 { background: rgba(210,153,34,0.2); color: var(--yellow); }
+    .score-bars { display: flex; flex-direction: column; gap: 8px; }
+    .score-bar-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+    .score-bar-label { width: 140px; color: var(--muted); flex-shrink: 0; }
+    .score-bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+    .score-bar-val { width: 36px; text-align: right; flex-shrink: 0; }
+    .score-total { text-align: center; padding: 12px; margin-bottom: 12px; }
+    .score-total .num { font-size: 36px; font-weight: 700; }
+    .score-total .label { font-size: 12px; color: var(--muted); }
+    .passed-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .badge-pass { background: rgba(63,185,80,0.2); color: var(--green); }
+    .badge-fail { background: rgba(248,81,73,0.2); color: var(--red); }
+    .revision-badge { background: rgba(240,136,62,0.2); color: var(--orange); font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 8px; }
+    .placeholder { color: var(--muted); text-align: center; padding: 40px; }
+    @media (max-width: 768px) {
+      .main { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+      .results { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1>retro-pilot</h1>
+  <span class="tagline">Autonomous incident post-mortem system</span>
+</div>
+<div class="main">
+  <div class="sidebar">
+    <h2>Scenarios</h2>
+    <div id="scenario-list"></div>
+    <div id="incident-card" style="display:none; margin-top:16px;">
+      <h2>Incident</h2>
+      <div class="incident-card">
+        <div class="incident-title" id="inc-title"></div>
+        <div class="incident-meta" id="inc-meta"></div>
+      </div>
+    </div>
+    <div id="similar-section" style="display:none; margin-top:8px;">
+      <h2>Similar Incidents</h2>
+      <div id="similar-list"></div>
+    </div>
+  </div>
+  <div class="content">
+    <div id="placeholder" class="placeholder">Select a scenario to run the post-mortem pipeline</div>
+    <div id="pipeline-section" style="display:none;">
+      <div class="pipeline">
+        <h2>Agent Pipeline</h2>
+        <div id="agent-list"></div>
+      </div>
+      <div class="results" id="results-section" style="display:none;">
+        <div class="result-card" style="grid-column:1/-1">
+          <h3>Executive Summary</h3>
+          <div class="executive-summary" id="exec-summary"></div>
+        </div>
+        <div class="result-card">
+          <h3>Timeline (Top 5 Events)</h3>
+          <div id="timeline-events"></div>
+        </div>
+        <div class="result-card">
+          <h3>Root Cause</h3>
+          <div id="root-cause"></div>
+        </div>
+        <div class="result-card">
+          <h3>Action Items</h3>
+          <div id="action-items"></div>
+        </div>
+        <div class="result-card">
+          <h3>Evaluator Score</h3>
+          <div id="eval-score"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const IS_STATIC = window.location.protocol === 'file:' || !window.location.hostname || window.location.hostname === '';
+
+async function loadScenarios() {
+  if (IS_STATIC) {
+    const ids = ['redis-cascade', 'deploy-regression', 'certificate-expiry'];
+    const labels = ['Redis Cascade (SEV1)', 'Deploy Regression (SEV2)', 'Certificate Expiry (SEV2)'];
+    const sevs = ['SEV1', 'SEV2', 'SEV2'];
+    renderScenarioButtons(ids.map((id, i) => ({id, label: labels[i], severity: sevs[i]})));
+    return;
+  }
+  const res = await fetch('/scenarios');
+  const data = await res.json();
+  renderScenarioButtons(data.scenarios);
+}
+
+function renderScenarioButtons(scenarios) {
+  const el = document.getElementById('scenario-list');
+  el.innerHTML = '';
+  scenarios.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'scenario-btn';
+    btn.dataset.id = s.id;
+    btn.innerHTML = `<div class="label"><span class="severity ${s.severity}">${s.severity}</span>${s.label}</div>
+      <div class="meta">${s.incident_id || ''}</div>`;
+    btn.addEventListener('click', () => runScenario(s.id, btn));
+    el.appendChild(btn);
+  });
+}
+
+async function runScenario(id, btn) {
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('pipeline-section').style.display = 'block';
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('agent-list').innerHTML = '';
+  document.getElementById('incident-card').style.display = 'none';
+  document.getElementById('similar-section').style.display = 'none';
+
+  if (IS_STATIC) {
+    await runStaticScenario(id);
+  } else {
+    await runSSEScenario(id);
+  }
+}
+
+async function runStaticScenario(id) {
+  const res = await fetch(`scenarios/${id}.json`);
+  const data = await res.json();
+  renderIncident(data.incident);
+  renderSimilar(data.similar_incidents_retrieved || []);
+  let lastEval = null;
+  for (const step of data.pipeline_steps) {
+    await new Promise(r => setTimeout(r, step.status === 'running' ? 400 : 800));
+    renderStep(step);
+    if (step.evaluation) lastEval = step.evaluation;
+  }
+  renderResults(data.postmortem_final, data, lastEval);
+}
+
+async function runSSEScenario(id) {
+  const es = new EventSource(`/run/${id}`);
+  let lastEval = null;
+  const scenarioData = await fetch(`/scenario/${id}`).then(r => r.json());
+
+  es.addEventListener('incident', e => renderIncident(JSON.parse(e.data)));
+  es.addEventListener('similar_incidents', e => renderSimilar(JSON.parse(e.data)));
+  es.addEventListener('step', e => {
+    const step = JSON.parse(e.data);
+    renderStep(step);
+    if (step.evaluation) lastEval = step.evaluation;
+  });
+  es.addEventListener('postmortem', e => {
+    const pm = JSON.parse(e.data);
+    renderResults(pm, scenarioData, lastEval);
+    es.close();
+  });
+  es.addEventListener('done', () => es.close());
+  es.onerror = () => es.close();
+}
+
+function renderIncident(inc) {
+  document.getElementById('incident-card').style.display = 'block';
+  document.getElementById('inc-title').textContent = inc.title;
+  const start = new Date(inc.started_at);
+  const end = new Date(inc.resolved_at);
+  const dur = Math.round((end - start) / 60000);
+  document.getElementById('inc-meta').innerHTML =
+    `<span class="severity ${inc.severity}">${inc.severity}</span>${inc.id}<br>
+     Duration: ${dur} minutes<br>
+     Services: ${inc.affected_services.join(', ')}`;
+}
+
+function renderSimilar(similar) {
+  if (!similar || similar.length === 0) return;
+  document.getElementById('similar-section').style.display = 'block';
+  const el = document.getElementById('similar-list');
+  el.innerHTML = similar.map(s => `
+    <div class="similar-card">
+      <div class="sim-id">${s.id}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${s.title || ''}</div>
+      <div class="sim-score">Similarity: ${(s.similarity_score * 100).toFixed(0)}%</div>
+    </div>`).join('');
+}
+
+function renderStep(step) {
+  let row = document.getElementById(`agent-${step.agent}`);
+  if (!row) {
+    row = document.createElement('div');
+    row.className = 'agent-row';
+    row.id = `agent-${step.agent}`;
+    row.innerHTML = `<div class="agent-indicator" id="ind-${step.agent}"></div>
+      <div>
+        <div class="agent-name">${step.agent}${step.revision_number > 0 ? `<span class="revision-badge">Revision ${step.revision_number}</span>` : ''}</div>
+        <div class="agent-output" id="out-${step.agent}"></div>
+      </div>`;
+    document.getElementById('agent-list').appendChild(row);
+  }
+  const ind = document.getElementById(`ind-${step.agent}`);
+  if (ind) { ind.className = `agent-indicator ${step.status}`; }
+  const out = document.getElementById(`out-${step.agent}`);
+  if (out) {
+    let html = step.output || '';
+    if (step.sub_steps) {
+      html += `<div class="sub-steps">${step.sub_steps.map(s =>
+        `<span class="sub-step ${s.status}">${s.worker}</span>`).join('')}</div>`;
+    }
+    if (step.evaluation) {
+      const ev = step.evaluation;
+      const cls = ev.passed ? 'eval-passed' : 'eval-failed';
+      html += `<div class="eval-score ${cls}">Score: ${ev.total.toFixed(2)} — ${ev.passed ? '&#10003; PASSED' : '&#8634; REVISION REQUESTED'}</div>`;
+    }
+    out.innerHTML = html;
+  }
+}
+
+function renderResults(pm, data, lastEval) {
+  document.getElementById('results-section').style.display = 'grid';
+  document.getElementById('exec-summary').textContent = pm.executive_summary || '';
+
+  const tlStep = (data.pipeline_steps || []).find(s => s.agent === 'TimelineBuilder' && s.timeline);
+  if (tlStep && tlStep.timeline) {
+    const top5 = [...tlStep.timeline.events]
+      .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp))
+      .filter(e => ['critical','high'].includes(e.significance))
+      .slice(0, 5);
+    document.getElementById('timeline-events').innerHTML = top5.map(e => {
+      const t = new Date(e.timestamp);
+      const time = `${String(t.getUTCHours()).padStart(2,'0')}:${String(t.getUTCMinutes()).padStart(2,'0')}`;
+      return `<div class="timeline-event">
+        <span class="ev-time">${time}</span>
+        <span class="ev-sig sig-${e.significance}">&#9679;</span>
+        <span>${e.description}</span></div>`;
+    }).join('');
+  }
+
+  const rcStep = (data.pipeline_steps || []).find(s => s.agent === 'RootCauseAnalyst' && s.root_cause);
+  if (rcStep && rcStep.root_cause) {
+    const rc = rcStep.root_cause;
+    document.getElementById('root-cause').innerHTML =
+      `<div class="root-cause-primary">${rc.primary}</div>
+       <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Contributing factors:</div>
+       <ul class="contributing">${rc.contributing_factors.map(f => `<li>${f}</li>`).join('')}</ul>`;
+  }
+
+  const aiStep = (data.pipeline_steps || []).find(s => s.agent === 'ActionItemGenerator' && s.action_items);
+  if (aiStep && aiStep.action_items) {
+    document.getElementById('action-items').innerHTML = aiStep.action_items.map(ai =>
+      `<div class="action-item">
+        <div class="ai-title">${ai.title}</div>
+        <div class="ai-meta">
+          <span class="priority ${ai.priority}">${ai.priority}</span>
+          <span>${ai.owner_role}</span>
+          <span>${ai.deadline_days}d</span>
+          <span style="color:var(--accent)">${ai.type}</span>
+        </div></div>`).join('');
+  }
+
+  if (lastEval) {
+    const color = lastEval.passed ? '#3fb950' : '#f85149';
+    const dims = [
+      ['Timeline', lastEval.timeline_completeness],
+      ['Root Cause', lastEval.root_cause_clarity],
+      ['Action Items', lastEval.action_item_quality],
+      ['Exec Summary', lastEval.executive_summary_clarity],
+      ['Similar Incidents', lastEval.similar_incidents_referenced],
+    ];
+    document.getElementById('eval-score').innerHTML =
+      `<div class="score-total">
+        <div class="num" style="color:${color}">${lastEval.total.toFixed(2)}</div>
+        <div class="label">total score</div>
+        <div style="margin-top:6px"><span class="passed-badge ${lastEval.passed ? 'badge-pass' : 'badge-fail'}">${lastEval.passed ? '&#10003; PASSED' : '&#10007; FAILED'}</span></div>
+        ${lastEval.revision_number > 0 ? `<div style="margin-top:6px;font-size:12px;color:var(--muted)">After ${lastEval.revision_number} revision(s)</div>` : ''}
+      </div>
+      <div class="score-bars">${dims.map(([label, val]) => {
+        const pct = (val * 100).toFixed(0);
+        const barColor = val >= 0.80 ? '#3fb950' : val >= 0.60 ? '#d29922' : '#f85149';
+        return `<div class="score-bar-row">
+          <span class="score-bar-label">${label}</span>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          <span class="score-bar-val" style="color:${barColor}">${(val).toFixed(2)}</span>
+        </div>`;
+      }).join('')}</div>`;
+  }
+}
+
+loadScenarios();
+</script>
+</body>
+</html>
