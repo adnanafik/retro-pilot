@@ -219,7 +219,7 @@
     ],
     "timeline": {
       "events": [
-        {"timestamp": "2026-12-30T03:00:00Z", "description": "Certificate rotation automation ran but failed silently (exit 0, no rotation performed).", "source": "log", "significance": "critical"},
+        {"timestamp": "2025-12-30T03:00:00Z", "description": "Certificate rotation automation ran but failed silently (exit 0, no rotation performed).", "source": "log", "significance": "critical"},
         {"timestamp": "2026-01-29T03:00:00Z", "description": "Internal mTLS certificate expired.", "source": "log", "significance": "critical"},
         {"timestamp": "2026-01-29T03:04:00Z", "description": "External monitoring alert: all API endpoints returning 503.", "source": "metric", "significance": "critical"},
         {"timestamp": "2026-01-29T03:18:00Z", "description": "Root cause identified: expired certificate.", "source": "slack", "significance": "high"},
