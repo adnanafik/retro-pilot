@@ -1,0 +1,160 @@
+{
+  "id": "certificate-expiry",
+  "label": "Certificate Expiry (SEV2)",
+  "incident": {
+    "id": "INC-2026-0171",
+    "title": "TLS certificate expired on internal service mesh — all mTLS communication failed",
+    "severity": "SEV2",
+    "started_at": "2026-03-01T03:00:00+00:00",
+    "resolved_at": "2026-03-01T03:31:00+00:00",
+    "affected_services": ["api-gateway", "auth-service", "payment-service", "session-service", "notification-service"],
+    "involved_repos": ["acme/infra-certs"],
+    "slack_channel": "#incident-2026-0171",
+    "metrics_namespace": null,
+    "reported_by": "external-monitoring"
+  },
+  "similar_incidents_retrieved": [],
+  "pipeline_steps": [
+    {
+      "agent": "EvidenceCollector",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:02:18+00:00",
+      "output": "Evidence collected: 1,204 log lines, 60 metric datapoints, 2 git events (cert rotation automation logs), 31 Slack messages. Gaps: cert rotation automation logs only available from 30 days prior."
+    },
+    {
+      "agent": "TimelineBuilder",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:02:39+00:00",
+      "output": "Timeline built: 7 events. First signal at 03:00:04 (external monitor). Detection lag: 4 minutes.",
+      "timeline": {
+        "first_signal_at": "2026-03-01T03:00:04+00:00",
+        "detection_lag_minutes": 4,
+        "resolution_duration_minutes": 31,
+        "events": [
+          {"timestamp": "2026-02-01T02:00:00+00:00", "description": "Git: cert rotation automation triggered for internal-mesh.acme.internal — reported success", "source": "git", "significance": "critical"},
+          {"timestamp": "2026-02-01T02:00:12+00:00", "description": "[infra-certs] WARNING: Certificate renewal dry-run completed but actual renewal skipped — ACME challenge failed silently", "source": "log", "significance": "critical"},
+          {"timestamp": "2026-03-01T03:00:00+00:00", "description": "Certificate internal-mesh.acme.internal expired (90-day cert, last renewed 2025-12-01)", "source": "manual", "significance": "critical"},
+          {"timestamp": "2026-03-01T03:00:04+00:00", "description": "External monitor: 5 services returned TLS handshake errors", "source": "metric", "significance": "critical"},
+          {"timestamp": "2026-03-01T03:04:00+00:00", "description": "[Slack] external-monitoring: All internal services down — TLS errors. Incident declared.", "source": "slack", "significance": "high"},
+          {"timestamp": "2026-03-01T03:22:00+00:00", "description": "Manual cert rotation initiated — new cert provisioned and deployed", "source": "manual", "significance": "critical"},
+          {"timestamp": "2026-03-01T03:31:00+00:00", "description": "[Slack] oncall: All services recovered. Certificate valid until 2026-05-30.", "source": "slack", "significance": "critical"}
+        ]
+      }
+    },
+    {
+      "agent": "RootCauseAnalyst",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:03:08+00:00",
+      "output": "Root cause identified with HIGH confidence.",
+      "root_cause": {
+        "primary": "TLS certificate for internal-mesh.acme.internal expired because the automated renewal process silently failed 30 days prior and no alert fired",
+        "contributing_factors": [
+          "Cert rotation automation had never been tested end-to-end in production — only a dry-run was ever executed",
+          "The automation logged a warning about the failed renewal but no alert was configured on that warning",
+          "No 30-day or 7-day expiry alerts existed — the team assumed automation was handling renewal"
+        ],
+        "trigger": "90-day TLS certificate reached its expiry timestamp at 03:00 UTC on March 1st",
+        "blast_radius": "All 5 internal services communicating over mTLS were unreachable for 31 minutes — complete service mesh failure",
+        "confidence": "HIGH",
+        "evidence_refs": ["log:infra-certs:2026-02-01T02:00:12", "git:infra-certs:2026-02-01", "metric:external-monitor:03:00:04"]
+      }
+    },
+    {
+      "agent": "ActionItemGenerator",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:03:24+00:00",
+      "output": "4 action items generated.",
+      "action_items": [
+        {
+          "title": "Test cert rotation automation end-to-end in staging monthly",
+          "owner_role": "Infrastructure team",
+          "deadline_days": 14,
+          "priority": "P1",
+          "type": "detection",
+          "acceptance_criteria": "Monthly scheduled test of cert rotation automation in staging. Test exercises full renewal flow (not dry-run). Pass/fail reported in #infra-health. First test completed within 14 days."
+        },
+        {
+          "title": "Add 30-day certificate expiry alert for all internal certificates",
+          "owner_role": "Infrastructure team",
+          "deadline_days": 7,
+          "priority": "P1",
+          "type": "detection",
+          "acceptance_criteria": "Alert fires 30 days before expiry for all certificates in the cert inventory. PagerDuty notification sent. Inventory lists 12 certificates. Alert tested with a synthetic near-expiry cert."
+        },
+        {
+          "title": "Add 7-day certificate expiry escalation alert",
+          "owner_role": "Infrastructure team",
+          "deadline_days": 7,
+          "priority": "P1",
+          "type": "detection",
+          "acceptance_criteria": "Second alert fires 7 days before expiry, escalated to on-call manager. Both alerts tested in staging."
+        },
+        {
+          "title": "Add cert rotation automation failure alert on warning log pattern",
+          "owner_role": "Infrastructure team",
+          "deadline_days": 14,
+          "priority": "P1",
+          "type": "detection",
+          "acceptance_criteria": "Alert fires when infra-certs logs contain 'renewal skipped' or 'challenge failed'. PagerDuty page. Tested by injecting the pattern in staging."
+        }
+      ]
+    },
+    {
+      "agent": "PostMortemWriter",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:03:41+00:00",
+      "output": "Draft post-mortem assembled."
+    },
+    {
+      "agent": "EvaluatorAgent",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:03:53+00:00",
+      "output": "Score: 0.72 — REVISION REQUESTED",
+      "evaluation": {
+        "total": 0.72,
+        "timeline_completeness": 0.90,
+        "root_cause_clarity": 0.90,
+        "action_item_quality": 0.90,
+        "executive_summary_clarity": 0.45,
+        "similar_incidents_referenced": 0.70,
+        "passed": false,
+        "revision_brief": "Executive summary uses 'TLS', 'mTLS', and 'ACME challenge' — these are not intelligible to a non-technical executive. Rewrite: what services were down, for how long, what was the user impact, what was fixed.",
+        "revision_number": 0
+      }
+    },
+    {
+      "agent": "PostMortemWriter",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:04:05+00:00",
+      "output": "Revision 1 ready."
+    },
+    {
+      "agent": "EvaluatorAgent",
+      "status": "complete",
+      "timestamp": "2026-03-01T04:04:17+00:00",
+      "output": "Score: 0.89 — PASSED",
+      "evaluation": {
+        "total": 0.89,
+        "timeline_completeness": 0.90,
+        "root_cause_clarity": 0.90,
+        "action_item_quality": 0.90,
+        "executive_summary_clarity": 0.88,
+        "similar_incidents_referenced": 0.70,
+        "passed": true,
+        "revision_brief": null,
+        "revision_number": 1
+      }
+    }
+  ],
+  "postmortem_final": {
+    "executive_summary": "On March 1st at 3am, all internal services were unreachable for 31 minutes because a security certificate expired. An automated renewal system had silently failed 30 days earlier without triggering an alert, allowing the expiry to go unnoticed. Certificates have been renewed, expiry alerts added, and the renewal automation is being tested monthly to ensure it works before it is needed.",
+    "lessons_learned": [
+      "Automation that has never been tested end-to-end should be treated as non-existent. A renewal process that only runs dry-runs provides false assurance.",
+      "Warning logs that indicate automation failures must trigger alerts — a logged warning that no one sees is not materially different from silence.",
+      "Certificate expiry is entirely predictable. Any certificate expiring without a 30-day warning alert represents a monitoring gap, not bad luck."
+    ],
+    "similar_incidents": [],
+    "revision_count": 1,
+    "draft": true
+  }
+}

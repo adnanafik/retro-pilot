@@ -1,0 +1,28 @@
+# retro-pilot configuration template
+# Copy to retro-pilot.yml and customise.
+# Environment variables (${VAR}) are substituted at load time.
+
+tenant_id: "my-company"
+
+llm:
+  # Model to use for all agents. Default: claude-sonnet-4-6
+  model: "claude-sonnet-4-6"
+  # Maximum tokens per LLM response
+  max_tokens: 4096
+  # Maximum tool-use turns before the loop exits (safety net)
+  max_turns: 10
+
+evaluator:
+  # Post-mortem quality threshold — drafts below this are revised
+  pass_threshold: 0.80
+  # Maximum revision cycles before returning best draft for human review
+  max_revision_cycles: 3
+
+# Run in demo mode — serves pre-recorded scenarios, no API calls required
+demo_mode: false  # set to true or DEMO_MODE=true env var
+
+# ChromaDB persistence directory (gitignored)
+chroma_db_path: "./chroma_db"
+
+# Post-mortem output directory
+postmortems_path: "./postmortems"

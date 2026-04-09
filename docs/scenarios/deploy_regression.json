@@ -1,0 +1,128 @@
+{
+  "id": "deploy-regression",
+  "label": "Deploy Regression (SEV2)",
+  "incident": {
+    "id": "INC-2026-0156",
+    "title": "Auth token validation rejecting valid tokens for 8% of users",
+    "severity": "SEV2",
+    "started_at": "2026-02-03T09:15:00+00:00",
+    "resolved_at": "2026-02-03T09:38:00+00:00",
+    "affected_services": ["auth-service", "api-gateway"],
+    "involved_repos": ["acme/auth-service"],
+    "slack_channel": "#incident-2026-0156",
+    "metrics_namespace": "auth-service",
+    "reported_by": "support-team"
+  },
+  "similar_incidents_retrieved": [],
+  "pipeline_steps": [
+    {
+      "agent": "EvidenceCollector",
+      "status": "complete",
+      "timestamp": "2026-02-03T10:05:18+00:00",
+      "output": "Evidence collected: 412 log lines, 90 metric datapoints, 8 git events (including dependency bump 2h prior), 18 Slack messages. Gaps: none."
+    },
+    {
+      "agent": "TimelineBuilder",
+      "status": "complete",
+      "timestamp": "2026-02-03T10:05:31+00:00",
+      "output": "Timeline built: 6 events. First signal at 08:52 (error rate spike in auth-service metrics). Detection lag: 23 minutes (users reported via support tickets before monitoring caught it).",
+      "timeline": {
+        "first_signal_at": "2026-02-03T08:52:00+00:00",
+        "detection_lag_minutes": 23,
+        "resolution_duration_minutes": 23,
+        "events": [
+          {"timestamp": "2026-02-03T07:00:00+00:00", "description": "Deploy: auth-service v2.4.0 — bumped jose dependency from 4.14.4 to 4.15.0 (semver minor)", "source": "git", "significance": "high"},
+          {"timestamp": "2026-02-03T08:52:00+00:00", "description": "Metric: auth_token_validation_error_rate = 8.3% (baseline 0.1%)", "source": "metric", "significance": "critical"},
+          {"timestamp": "2026-02-03T09:05:00+00:00", "description": "[auth-service] TokenValidationError: algorithm 'RS256' not in allowed list for issuer 'acme-prod'", "source": "log", "significance": "critical"},
+          {"timestamp": "2026-02-03T09:10:00+00:00", "description": "First support ticket: 'Login not working on mobile app'", "source": "slack", "significance": "high"},
+          {"timestamp": "2026-02-03T09:15:00+00:00", "description": "[Slack] support-team: Multiple users reporting login failures. Incident declared.", "source": "slack", "significance": "high"},
+          {"timestamp": "2026-02-03T09:38:00+00:00", "description": "[Slack] platform-team: Rolled back jose to 4.14.4. Validation errors resolved.", "source": "slack", "significance": "critical"}
+        ]
+      }
+    },
+    {
+      "agent": "RootCauseAnalyst",
+      "status": "complete",
+      "timestamp": "2026-02-03T10:06:01+00:00",
+      "output": "Root cause identified with HIGH confidence.",
+      "root_cause": {
+        "primary": "jose library minor version bump (4.14.4 → 4.15.0) changed default algorithm validation behaviour, silently breaking RS256 token validation for tokens issued before the deploy",
+        "contributing_factors": [
+          "Semver minor version bump was assumed to be non-breaking — the changelog did not document the algorithm validation change",
+          "Integration tests only validated token creation, not validation of tokens created with previous library versions",
+          "No user-facing error rate alert existed — the issue was discovered via support tickets 23 minutes after first signal"
+        ],
+        "trigger": "Deployment of auth-service v2.4.0 at 07:00 included jose 4.15.0 which changed allowed algorithm defaults",
+        "blast_radius": "8% of users (those with tokens issued before the deploy) could not authenticate. No data loss.",
+        "confidence": "HIGH",
+        "evidence_refs": ["log:auth-service:09:05", "git:auth-service:07:00", "metric:auth_token_validation_error_rate:08:52"]
+      }
+    },
+    {
+      "agent": "ActionItemGenerator",
+      "status": "complete",
+      "timestamp": "2026-02-03T10:06:18+00:00",
+      "output": "3 action items generated.",
+      "action_items": [
+        {
+          "title": "Pin jose dependency to exact version in pyproject.toml",
+          "owner_role": "Auth team",
+          "deadline_days": 3,
+          "priority": "P1",
+          "type": "prevention",
+          "acceptance_criteria": "jose pinned to exact version (not range). Dependabot PR review process updated to require auth team approval for jose upgrades."
+        },
+        {
+          "title": "Add cross-version token validation smoke test to deployment pipeline",
+          "owner_role": "Auth team",
+          "deadline_days": 14,
+          "priority": "P1",
+          "type": "detection",
+          "acceptance_criteria": "Deploy pipeline validates tokens issued by the previous 2 releases against the new auth-service version. Test added to CI, runs on every auth-service deploy."
+        },
+        {
+          "title": "Add user-facing authentication error rate alert",
+          "owner_role": "Platform team",
+          "deadline_days": 7,
+          "priority": "P1",
+          "type": "detection",
+          "acceptance_criteria": "Alert fires when auth_token_validation_error_rate exceeds 1% for 2 minutes. PagerDuty page to oncall. Tested in staging."
+        }
+      ]
+    },
+    {
+      "agent": "PostMortemWriter",
+      "status": "complete",
+      "timestamp": "2026-02-03T10:06:35+00:00",
+      "output": "Draft post-mortem assembled."
+    },
+    {
+      "agent": "EvaluatorAgent",
+      "status": "complete",
+      "timestamp": "2026-02-03T10:06:47+00:00",
+      "output": "Score: 0.88 — PASSED",
+      "evaluation": {
+        "total": 0.88,
+        "timeline_completeness": 0.90,
+        "root_cause_clarity": 0.95,
+        "action_item_quality": 0.90,
+        "executive_summary_clarity": 0.85,
+        "similar_incidents_referenced": 0.70,
+        "passed": true,
+        "revision_brief": null,
+        "revision_number": 0
+      }
+    }
+  ],
+  "postmortem_final": {
+    "executive_summary": "On February 3rd, approximately 8% of users were unable to log in for 23 minutes following a software update that contained an undocumented behaviour change in a security library. Users discovered the issue and reported it to support before our monitoring detected it. The change was reversed and login was fully restored; the security library has been locked to a specific version to prevent recurrence.",
+    "lessons_learned": [
+      "Semver 'minor' version bumps in security libraries are not safe to assume non-breaking — integration tests must validate backward compatibility with tokens issued by previous versions.",
+      "A 23-minute detection lag driven by support tickets rather than monitoring is a monitoring gap. User-facing error rates above 1% should page oncall immediately.",
+      "Dependency upgrades in security-critical libraries should require explicit review, not just pass through automated dependency management."
+    ],
+    "similar_incidents": [],
+    "revision_count": 0,
+    "draft": true
+  }
+}
