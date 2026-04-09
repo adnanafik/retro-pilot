@@ -61,7 +61,7 @@
         {"timestamp": "2026-01-15T14:47:00Z", "description": "Pool size increased to 200 — services recovered.", "source": "git", "significance": "critical"}
       ],
       "first_signal_at": "2026-01-15T14:03:00Z",
-      "detection_lag_minutes": 12,
+      "detection_lag_minutes": 9,
       "resolution_duration_minutes": 47
     },
     "lessons_learned": [
@@ -71,14 +71,14 @@
     ],
     "similar_incidents": ["INC-2026-0089"],
     "evaluator_scores": {
-      "total": 0.74,
+      "total": 0.86,
       "timeline_completeness": 0.85,
       "root_cause_clarity": 0.80,
       "action_item_quality": 0.55,
       "executive_summary_clarity": 0.75,
       "similar_incidents_referenced": 0.65
     },
-    "revision_count": 0,
+    "revision_count": 1,
     "generated_at": "2026-01-15T15:10:00Z",
     "draft": true
   },
@@ -87,7 +87,7 @@
       "id": "INC-2026-0156",
       "title": "Deploy regression — auth token validation rejecting valid tokens",
       "severity": "SEV2",
-      "started_at": "2026-01-22T09:15:00Z",
+      "started_at": "2026-01-22T09:00:00Z",
       "resolved_at": "2026-01-22T09:38:00Z",
       "affected_services": ["auth-service", "api-gateway"],
       "involved_repos": ["acme/auth-service"],
@@ -95,7 +95,7 @@
       "metrics_namespace": "auth-service",
       "reported_by": "support-escalation"
     },
-    "resolution_duration_minutes": 23,
+    "resolution_duration_minutes": 38,
     "executive_summary": "On January 22nd, 8% of users were unable to log in for 23 minutes following a dependency upgrade that silently changed token validation behaviour. The issue was detected via support ticket volume before monitoring caught it, indicating a gap in user-facing error rate alerting. A rollback was deployed within 23 minutes and dependency versions have been pinned to prevent recurrence.",
     "root_cause": {
       "primary": "A semver minor version bump in the jwt-validation library changed token signature verification behaviour, causing valid tokens to be rejected.",
@@ -144,8 +144,8 @@
         {"timestamp": "2026-01-22T09:38:00Z", "description": "Rollback deployed — error rate returned to 0.", "source": "git", "significance": "critical"}
       ],
       "first_signal_at": "2026-01-22T09:15:00Z",
-      "detection_lag_minutes": 23,
-      "resolution_duration_minutes": 23
+      "detection_lag_minutes": 15,
+      "resolution_duration_minutes": 38
     },
     "lessons_learned": [
       "Semver minor versions can contain breaking changes — never auto-merge dependency bumps for security-critical libraries.",
