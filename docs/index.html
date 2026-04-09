@@ -150,7 +150,7 @@
   </div>
 </div>
 <script>
-const IS_STATIC = window.location.protocol === 'file:' || !window.location.hostname || window.location.hostname === '';
+const IS_STATIC = true; // docs/ is always static (GitHub Pages — no backend)
 
 async function loadScenarios() {
   if (IS_STATIC) {
