@@ -104,7 +104,20 @@
 <div class="main">
   <div class="sidebar">
     <h2>Scenarios</h2>
-    <div id="scenario-list"></div>
+    <div id="scenario-list">
+      <button class="scenario-btn" onclick="runScenario('redis-cascade', this)">
+        <div class="label"><span class="severity SEV1">SEV1</span>Redis Cascade</div>
+        <div class="meta">INC-2026-0142 &mdash; 47 min outage</div>
+      </button>
+      <button class="scenario-btn" onclick="runScenario('deploy-regression', this)">
+        <div class="label"><span class="severity SEV2">SEV2</span>Deploy Regression</div>
+        <div class="meta">INC-2026-0156 &mdash; 23 min, 8% users</div>
+      </button>
+      <button class="scenario-btn" onclick="runScenario('certificate-expiry', this)">
+        <div class="label"><span class="severity SEV2">SEV2</span>Certificate Expiry</div>
+        <div class="meta">INC-2026-0171 &mdash; 31 min, full mesh</div>
+      </button>
+    </div>
     <div id="incident-card" style="display:none; margin-top:16px;">
       <h2>Incident</h2>
       <div class="incident-card">
@@ -150,34 +163,7 @@
   </div>
 </div>
 <script>
-const IS_STATIC = true; // docs/ is always static (GitHub Pages — no backend)
-
-async function loadScenarios() {
-  if (IS_STATIC) {
-    const ids = ['redis-cascade', 'deploy-regression', 'certificate-expiry'];
-    const labels = ['Redis Cascade (SEV1)', 'Deploy Regression (SEV2)', 'Certificate Expiry (SEV2)'];
-    const sevs = ['SEV1', 'SEV2', 'SEV2'];
-    renderScenarioButtons(ids.map((id, i) => ({id, label: labels[i], severity: sevs[i]})));
-    return;
-  }
-  const res = await fetch('/scenarios');
-  const data = await res.json();
-  renderScenarioButtons(data.scenarios);
-}
-
-function renderScenarioButtons(scenarios) {
-  const el = document.getElementById('scenario-list');
-  el.innerHTML = '';
-  scenarios.forEach(s => {
-    const btn = document.createElement('button');
-    btn.className = 'scenario-btn';
-    btn.dataset.id = s.id;
-    btn.innerHTML = `<div class="label"><span class="severity ${s.severity}">${s.severity}</span>${s.label}</div>
-      <div class="meta">${s.incident_id || ''}</div>`;
-    btn.addEventListener('click', () => runScenario(s.id, btn));
-    el.appendChild(btn);
-  });
-}
+// docs/ is always static (GitHub Pages — no backend)
 
 async function runScenario(id, btn) {
   document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
@@ -189,11 +175,7 @@ async function runScenario(id, btn) {
   document.getElementById('incident-card').style.display = 'none';
   document.getElementById('similar-section').style.display = 'none';
 
-  if (IS_STATIC) {
-    await runStaticScenario(id);
-  } else {
-    await runSSEScenario(id);
-  }
+  await runStaticScenario(id);
 }
 
 async function runStaticScenario(id) {
@@ -210,26 +192,6 @@ async function runStaticScenario(id) {
   renderResults(data.postmortem_final, data, lastEval);
 }
 
-async function runSSEScenario(id) {
-  const es = new EventSource(`/run/${id}`);
-  let lastEval = null;
-  const scenarioData = await fetch(`/scenario/${id}`).then(r => r.json());
-
-  es.addEventListener('incident', e => renderIncident(JSON.parse(e.data)));
-  es.addEventListener('similar_incidents', e => renderSimilar(JSON.parse(e.data)));
-  es.addEventListener('step', e => {
-    const step = JSON.parse(e.data);
-    renderStep(step);
-    if (step.evaluation) lastEval = step.evaluation;
-  });
-  es.addEventListener('postmortem', e => {
-    const pm = JSON.parse(e.data);
-    renderResults(pm, scenarioData, lastEval);
-    es.close();
-  });
-  es.addEventListener('done', () => es.close());
-  es.onerror = () => es.close();
-}
 
 function renderIncident(inc) {
   document.getElementById('incident-card').style.display = 'block';
@@ -356,7 +318,6 @@ function renderResults(pm, data, lastEval) {
   }
 }
 
-loadScenarios();
 </script>
 </body>
 </html>
