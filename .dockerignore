@@ -14,4 +14,3 @@ docs
 *.egg-info
 dist
 build
-README.md
