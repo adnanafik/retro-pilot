@@ -141,8 +141,9 @@ def test_root_cause_analyst_with_evidence_populates_refs():
     assert len(result.evidence_refs) > 0
 
 
-def test_root_cause_analyst_llm_path_with_mock_agent_loop():
+def test_root_cause_analyst_llm_path_with_mock_agent_loop(monkeypatch):
     """LLM path (_analyse_with_llm) covered by mocking AgentLoop."""
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     from unittest.mock import AsyncMock, MagicMock, patch
 
     expected_rc = RootCause(
@@ -174,8 +175,9 @@ def test_root_cause_analyst_llm_path_with_mock_agent_loop():
     assert result.primary == "Connection pool exhausted"
 
 
-def test_root_cause_analyst_llm_path_with_similar_incidents():
+def test_root_cause_analyst_llm_path_with_similar_incidents(monkeypatch):
     """LLM path with similar_incidents builds context correctly."""
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     from datetime import UTC, datetime
     from unittest.mock import AsyncMock, MagicMock, patch
 

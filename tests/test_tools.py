@@ -96,6 +96,7 @@ def test_get_logs_execute_demo_via_env_var(monkeypatch):
 
 
 def test_save_postmortem_live_write(tmp_path, monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     monkeypatch.setattr(write_tools_module, "_POSTMORTEMS_DIR", tmp_path)
     t = SavePostmortemTool()
     pm_json = json_module.dumps({"incident_id": "INC-TEST", "draft": True})
@@ -107,7 +108,8 @@ def test_save_postmortem_live_write(tmp_path, monkeypatch):
     assert json_module.loads(saved_file.read_text())["draft"] is True
 
 
-def test_save_postmortem_invalid_json_raises():
+def test_save_postmortem_invalid_json_raises(monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     t = SavePostmortemTool()
     with pytest.raises(ValueError, match="not valid JSON"):
         t.execute(incident_id="INC-TEST", postmortem_json="not json at all")

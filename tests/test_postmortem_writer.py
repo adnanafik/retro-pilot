@@ -92,8 +92,9 @@ def test_postmortem_writer_describe():
     assert "post-mortem" in writer.describe().lower() or "writer" in writer.describe().lower()
 
 
-def test_postmortem_writer_llm_path_executive_summary():
+def test_postmortem_writer_llm_path_executive_summary(monkeypatch):
     """LLM path: backend.complete() is called when demo_mode=False and backend is set."""
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     from unittest.mock import MagicMock
     backend = MagicMock()
     backend.complete.return_value = "Service was disrupted. Users were affected. Issue was fixed."
@@ -109,8 +110,9 @@ def test_postmortem_writer_llm_path_executive_summary():
     assert backend.complete.call_count >= 1
 
 
-def test_postmortem_writer_llm_path_with_revision_brief():
+def test_postmortem_writer_llm_path_with_revision_brief(monkeypatch):
     """Revision brief is forwarded to the LLM prompt."""
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     from unittest.mock import MagicMock
     backend = MagicMock()
     backend.complete.side_effect = [
@@ -133,8 +135,9 @@ def test_postmortem_writer_llm_path_with_revision_brief():
     assert "Revision feedback" in user_prompt or "revision_brief" in str(call_args)
 
 
-def test_postmortem_writer_llm_lessons_invalid_json_returns_raw():
+def test_postmortem_writer_llm_lessons_invalid_json_returns_raw(monkeypatch):
     """If LLM returns non-JSON for lessons, raw string is returned in list."""
+    monkeypatch.delenv("DEMO_MODE", raising=False)
     from unittest.mock import MagicMock
     backend = MagicMock()
     backend.complete.side_effect = [
