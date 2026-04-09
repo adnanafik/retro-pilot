@@ -1,0 +1,250 @@
+[
+  {
+    "incident": {
+      "id": "INC-2026-0142",
+      "title": "Redis connection pool exhaustion in auth-service",
+      "severity": "SEV1",
+      "started_at": "2026-01-15T14:00:00Z",
+      "resolved_at": "2026-01-15T14:47:00Z",
+      "affected_services": ["auth-service", "payment-service", "session-service"],
+      "involved_repos": ["acme/auth-service"],
+      "slack_channel": "#incident-2026-0142",
+      "metrics_namespace": "auth-service",
+      "reported_by": "oncall-engineer"
+    },
+    "resolution_duration_minutes": 47,
+    "executive_summary": "On January 15th, three customer-facing services were unavailable for 47 minutes, affecting approximately 12,000 users during checkout and login. The outage was triggered by a sudden spike in user activity that exceeded a hard capacity limit that had not been updated as our user base grew. The capacity limit has been increased and an automated warning system added to alert the team before similar limits are reached in future.",
+    "root_cause": {
+      "primary": "Redis connection pool in auth-service exhausted under 4x normal login rate.",
+      "contributing_factors": [
+        "Pool size (50 connections) had not been reviewed since the user base tripled.",
+        "Action item from INC-2026-0089 to increase pool size was never completed.",
+        "No alert existed for pool utilisation above 80%."
+      ],
+      "trigger": "Marketing campaign launched at 14:00 increased login rate 4x above baseline.",
+      "blast_radius": "auth-service, payment-service, session-service — all dependent on auth tokens.",
+      "confidence": "HIGH",
+      "evidence_refs": ["log:14:00-14:12", "metric:pool_utilisation_100pct", "slack:14:03-oncall"]
+    },
+    "action_items": [
+      {
+        "title": "Increase Redis connection pool size to 200",
+        "owner_role": "Platform team",
+        "deadline_days": 3,
+        "priority": "P1",
+        "type": "prevention",
+        "acceptance_criteria": "Pool size config ≥ 200; load test at 5x baseline passes without pool exhaustion."
+      },
+      {
+        "title": "Add pool saturation alert at 80% utilisation",
+        "owner_role": "Observability team",
+        "deadline_days": 7,
+        "priority": "P1",
+        "type": "detection",
+        "acceptance_criteria": "PagerDuty alert fires when pool_used/pool_max ≥ 0.80 for 2 consecutive minutes."
+      },
+      {
+        "title": "Add connection pool load test to release checklist",
+        "owner_role": "Platform team",
+        "deadline_days": 14,
+        "priority": "P2",
+        "type": "prevention",
+        "acceptance_criteria": "Release checklist item exists; load test runs in CI on every deployment to auth-service."
+      }
+    ],
+    "timeline": {
+      "events": [
+        {"timestamp": "2026-01-15T14:00:00Z", "description": "Marketing campaign launched — login rate 4x baseline.", "source": "slack", "significance": "critical"},
+        {"timestamp": "2026-01-15T14:03:00Z", "description": "Redis pool utilisation reached 100%, connections queuing.", "source": "metric", "significance": "critical"},
+        {"timestamp": "2026-01-15T14:08:00Z", "description": "auth-service returning 503 for 15% of requests.", "source": "log", "significance": "critical"},
+        {"timestamp": "2026-01-15T14:12:00Z", "description": "PagerDuty alert fired — latency p99 > 5s.", "source": "metric", "significance": "high"},
+        {"timestamp": "2026-01-15T14:47:00Z", "description": "Pool size increased to 200 — services recovered.", "source": "git", "significance": "critical"}
+      ],
+      "first_signal_at": "2026-01-15T14:03:00Z",
+      "detection_lag_minutes": 12,
+      "resolution_duration_minutes": 47
+    },
+    "lessons_learned": [
+      "Capacity limits set for yesterday's traffic become tomorrow's outages — limits must be reviewed whenever traffic grows by more than 50%.",
+      "An unresolved action item from INC-2026-0089 directly contributed to this outage recurring. Post-mortem action items must be tracked to closure.",
+      "Detection lag of 12 minutes is too high for a SEV1 — leading indicator alerts (pool utilisation at 80%) would have given time to act before user impact."
+    ],
+    "similar_incidents": ["INC-2026-0089"],
+    "evaluator_scores": {
+      "total": 0.74,
+      "timeline_completeness": 0.85,
+      "root_cause_clarity": 0.80,
+      "action_item_quality": 0.55,
+      "executive_summary_clarity": 0.75,
+      "similar_incidents_referenced": 0.65
+    },
+    "revision_count": 0,
+    "generated_at": "2026-01-15T15:10:00Z",
+    "draft": true
+  },
+  {
+    "incident": {
+      "id": "INC-2026-0156",
+      "title": "Deploy regression — auth token validation rejecting valid tokens",
+      "severity": "SEV2",
+      "started_at": "2026-01-22T09:15:00Z",
+      "resolved_at": "2026-01-22T09:38:00Z",
+      "affected_services": ["auth-service", "api-gateway"],
+      "involved_repos": ["acme/auth-service"],
+      "slack_channel": "#incident-2026-0156",
+      "metrics_namespace": "auth-service",
+      "reported_by": "support-escalation"
+    },
+    "resolution_duration_minutes": 23,
+    "executive_summary": "On January 22nd, 8% of users were unable to log in for 23 minutes following a dependency upgrade that silently changed token validation behaviour. The issue was detected via support ticket volume before monitoring caught it, indicating a gap in user-facing error rate alerting. A rollback was deployed within 23 minutes and dependency versions have been pinned to prevent recurrence.",
+    "root_cause": {
+      "primary": "A semver minor version bump in the jwt-validation library changed token signature verification behaviour, causing valid tokens to be rejected.",
+      "contributing_factors": [
+        "No breaking change was documented in the library changelog for the minor version.",
+        "The deployment pipeline lacked a smoke test for token validation after deploy.",
+        "No alert existed for user-facing authentication error rate above 1%."
+      ],
+      "trigger": "Automated dependency update merged at 09:00 bumped jwt-validation from 2.3.1 to 2.4.0.",
+      "blast_radius": "8% of users — those with tokens issued before the upgrade.",
+      "confidence": "HIGH",
+      "evidence_refs": ["log:09:15-auth-403", "git:dep-bump-pr-447", "slack:09:20-support-tickets"]
+    },
+    "action_items": [
+      {
+        "title": "Pin all dependency versions in auth-service to exact semver",
+        "owner_role": "Auth team",
+        "deadline_days": 2,
+        "priority": "P1",
+        "type": "prevention",
+        "acceptance_criteria": "All dependencies in auth-service pyproject.toml use == pinning; Dependabot PRs require manual approval."
+      },
+      {
+        "title": "Add token validation smoke test to deployment pipeline",
+        "owner_role": "Auth team",
+        "deadline_days": 7,
+        "priority": "P1",
+        "type": "detection",
+        "acceptance_criteria": "Post-deploy pipeline stage issues a test token, validates it, and blocks promotion if validation fails."
+      },
+      {
+        "title": "Add user-facing authentication error rate alert",
+        "owner_role": "Observability team",
+        "deadline_days": 7,
+        "priority": "P2",
+        "type": "detection",
+        "acceptance_criteria": "Alert fires when HTTP 403 rate on /auth/validate exceeds 1% over a 2-minute window."
+      }
+    ],
+    "timeline": {
+      "events": [
+        {"timestamp": "2026-01-22T09:00:00Z", "description": "jwt-validation dependency bumped from 2.3.1 to 2.4.0 — deploy completed.", "source": "git", "significance": "critical"},
+        {"timestamp": "2026-01-22T09:15:00Z", "description": "First support tickets: users reporting login failures.", "source": "slack", "significance": "high"},
+        {"timestamp": "2026-01-22T09:20:00Z", "description": "On-call engineer confirms 403 errors in auth-service logs.", "source": "log", "significance": "critical"},
+        {"timestamp": "2026-01-22T09:23:00Z", "description": "Root cause identified: dependency version bump.", "source": "slack", "significance": "high"},
+        {"timestamp": "2026-01-22T09:38:00Z", "description": "Rollback deployed — error rate returned to 0.", "source": "git", "significance": "critical"}
+      ],
+      "first_signal_at": "2026-01-22T09:15:00Z",
+      "detection_lag_minutes": 23,
+      "resolution_duration_minutes": 23
+    },
+    "lessons_learned": [
+      "Semver minor versions can contain breaking changes — never auto-merge dependency bumps for security-critical libraries.",
+      "Detection via support tickets (23-minute lag) is too slow — user-facing error rate alerts should fire within 2 minutes.",
+      "A post-deploy smoke test for core authentication flows would have caught this before any users were affected."
+    ],
+    "similar_incidents": [],
+    "evaluator_scores": {
+      "total": 0.91,
+      "timeline_completeness": 0.90,
+      "root_cause_clarity": 0.95,
+      "action_item_quality": 0.88,
+      "executive_summary_clarity": 0.93,
+      "similar_incidents_referenced": 0.85
+    },
+    "revision_count": 1,
+    "generated_at": "2026-01-22T10:30:00Z",
+    "draft": true
+  },
+  {
+    "incident": {
+      "id": "INC-2026-0171",
+      "title": "TLS certificate expiry in internal service mesh — full mTLS outage",
+      "severity": "SEV2",
+      "started_at": "2026-01-29T03:00:00Z",
+      "resolved_at": "2026-01-29T03:31:00Z",
+      "affected_services": ["api-gateway", "auth-service", "payment-service", "session-service", "notification-service"],
+      "involved_repos": ["acme/infra"],
+      "slack_channel": "#incident-2026-0171",
+      "metrics_namespace": null,
+      "reported_by": "external-monitoring"
+    },
+    "resolution_duration_minutes": 31,
+    "executive_summary": "On January 29th at 3:00 AM, all services communicating over mutual TLS became unavailable for 31 minutes when an internal certificate expired. Certificate rotation automation had silently failed 30 days prior and had not been tested. Manual rotation was completed at 03:31 and automation has since been repaired and verified.",
+    "root_cause": {
+      "primary": "Internal mTLS certificate expired at 03:00 UTC, blocking all inter-service communication.",
+      "contributing_factors": [
+        "Certificate rotation automation failed silently 30 days prior and was not retried.",
+        "No alert existed for certificate expiry within 30 days.",
+        "Automation had not been tested since initial setup 14 months ago."
+      ],
+      "trigger": "Certificate reached expiry at 03:00 UTC — rotation automation had silently failed 30 days prior.",
+      "blast_radius": "All 5 services in the mTLS mesh — full internal API outage.",
+      "confidence": "HIGH",
+      "evidence_refs": ["log:03:00-tls-handshake-fail", "infra:cert-rotation-job-failure"]
+    },
+    "action_items": [
+      {
+        "title": "Add certificate expiry alert at 30 days and 7 days",
+        "owner_role": "Infrastructure team",
+        "deadline_days": 1,
+        "priority": "P1",
+        "type": "detection",
+        "acceptance_criteria": "PagerDuty alert fires at cert_expiry_days ≤ 30 (warning) and ≤ 7 (critical) for all internal certificates."
+      },
+      {
+        "title": "Test certificate rotation automation in staging monthly",
+        "owner_role": "Infrastructure team",
+        "deadline_days": 14,
+        "priority": "P2",
+        "type": "prevention"
+      },
+      {
+        "title": "Add rotation automation failure alert",
+        "owner_role": "Infrastructure team",
+        "deadline_days": 7,
+        "priority": "P1",
+        "type": "detection",
+        "acceptance_criteria": "Alert fires within 5 minutes if cert-rotation job exits non-zero."
+      }
+    ],
+    "timeline": {
+      "events": [
+        {"timestamp": "2026-12-30T03:00:00Z", "description": "Certificate rotation automation ran but failed silently (exit 0, no rotation performed).", "source": "log", "significance": "critical"},
+        {"timestamp": "2026-01-29T03:00:00Z", "description": "Internal mTLS certificate expired.", "source": "log", "significance": "critical"},
+        {"timestamp": "2026-01-29T03:04:00Z", "description": "External monitoring alert: all API endpoints returning 503.", "source": "metric", "significance": "critical"},
+        {"timestamp": "2026-01-29T03:18:00Z", "description": "Root cause identified: expired certificate.", "source": "slack", "significance": "high"},
+        {"timestamp": "2026-01-29T03:31:00Z", "description": "Manual certificate rotation complete — services recovered.", "source": "log", "significance": "critical"}
+      ],
+      "first_signal_at": "2026-01-29T03:04:00Z",
+      "detection_lag_minutes": 4,
+      "resolution_duration_minutes": 31
+    },
+    "lessons_learned": [
+      "Automation that has not been tested recently should be treated as non-existent.",
+      "Certificate expiry is a solved problem — any cert expiry outage in 2026 is an operational failure, not a surprise.",
+      "Silent failure (exit 0 with no action) is the most dangerous failure mode — all automation must validate its own output."
+    ],
+    "similar_incidents": [],
+    "evaluator_scores": {
+      "total": 0.68,
+      "timeline_completeness": 0.70,
+      "root_cause_clarity": 0.75,
+      "action_item_quality": 0.50,
+      "executive_summary_clarity": 0.80,
+      "similar_incidents_referenced": 0.40
+    },
+    "revision_count": 1,
+    "generated_at": "2026-01-29T09:00:00Z",
+    "draft": true
+  }
+]
