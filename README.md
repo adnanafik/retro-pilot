@@ -8,6 +8,8 @@ retro-pilot is an autonomous incident post-mortem system. It collects evidence, 
 
 → **[Live demo](https://adnanafik.github.io/retro-pilot)**
 
+![retro-pilot demo](docs/demo.gif)
+
 ---
 
 ## How it works
