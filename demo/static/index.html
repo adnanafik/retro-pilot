@@ -94,6 +94,70 @@
       .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
       .results { grid-template-columns: 1fr; }
     }
+    /* ── Tab bar ──────────────────────────────────── */
+    .tab-bar { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; }
+    .tab-btn { background: none; border: none; color: var(--muted); padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    /* ── Review layout ───────────────────────────── */
+    .review-layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 90px); }
+    .review-sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; }
+    .review-filters { display: flex; gap: 8px; margin-bottom: 16px; }
+    .review-filters select { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 8px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+    .pm-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+    .pm-card:hover { border-color: var(--accent); }
+    .pm-card.active { border-color: var(--accent); background: rgba(88,166,255,0.08); }
+    .pm-card-title { font-weight: 500; font-size: 13px; margin-bottom: 6px; }
+    .pm-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pm-date { font-size: 11px; color: var(--muted); }
+    .eval-badge { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; }
+    .eval-pass { background: rgba(63,185,80,0.2); color: var(--green); }
+    .eval-warn { background: rgba(210,153,34,0.2); color: var(--yellow); }
+    .eval-fail { background: rgba(248,81,73,0.2); color: var(--red); }
+    .status-badge { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; }
+    .status-draft { background: rgba(125,133,144,0.2); color: var(--muted); }
+    .status-approved { background: rgba(63,185,80,0.2); color: var(--green); }
+    .status-needs_changes { background: rgba(240,136,62,0.2); color: var(--orange); }
+    .status-rejected { background: rgba(248,81,73,0.2); color: var(--red); }
+    .pm-reviewer { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    /* ── Detail view ─────────────────────────────── */
+    .review-detail { display: flex; flex-direction: column; overflow-y: auto; }
+    .detail-scroll { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 160px; }
+    .detail-header { margin-bottom: 20px; }
+    .detail-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .detail-meta { font-size: 13px; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
+    .detail-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .detail-section h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .score-total-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+    .score-big { font-size: 32px; font-weight: 700; }
+    .history-entry { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .history-entry:last-child { border-bottom: none; }
+    .history-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .history-comment { font-size: 12px; color: var(--text); margin-top: 4px; font-style: italic; }
+    .ai-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+    .ai-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 8px 8px 0; border-bottom: 1px solid var(--border); }
+    .ai-table td { padding: 6px 8px 6px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .ai-table tr:last-child td { border-bottom: none; }
+    /* ── Action bar ──────────────────────────────── */
+    .action-bar { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .action-bar-inputs { display: flex; gap: 10px; }
+    .action-bar input[type=text] { flex: 0 0 180px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 6px; font-size: 13px; }
+    .action-bar input[type=text].error { border-color: var(--red); }
+    .action-bar textarea { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 6px; font-size: 13px; resize: none; height: 38px; font-family: inherit; }
+    .action-bar textarea.error { border-color: var(--red); }
+    .action-btns { display: flex; gap: 8px; align-items: center; }
+    .btn { padding: 7px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-approve { background: rgba(63,185,80,0.2); color: var(--green); border: 1px solid rgba(63,185,80,0.4); }
+    .btn-approve:hover { background: rgba(63,185,80,0.35); }
+    .btn-changes { background: rgba(240,136,62,0.2); color: var(--orange); border: 1px solid rgba(240,136,62,0.4); }
+    .btn-changes:hover { background: rgba(240,136,62,0.35); }
+    .btn-reject { background: rgba(248,81,73,0.2); color: var(--red); border: 1px solid rgba(248,81,73,0.4); }
+    .btn-reject:hover { background: rgba(248,81,73,0.35); }
+    .action-error { color: var(--red); font-size: 12px; }
+    .action-success { color: var(--green); font-size: 12px; }
+    @media (max-width: 768px) {
+      .review-layout { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -101,6 +165,11 @@
   <h1>retro-pilot</h1>
   <span class="tagline">Autonomous incident post-mortem system</span>
 </div>
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-pipeline" onclick="switchTab('pipeline')">Pipeline</button>
+  <button class="tab-btn" id="tab-review" onclick="switchTab('review')">Review</button>
+</div>
+<div id="view-pipeline">
 <div class="main">
   <div class="sidebar">
     <h2>Scenarios</h2>
@@ -146,6 +215,32 @@
           <div id="eval-score"></div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+</div>
+<div id="view-review" style="display:none;" class="review-layout">
+  <div class="review-sidebar">
+    <div class="review-filters">
+      <select id="filter-status" onchange="loadReviewList()">
+        <option value="all">All statuses</option>
+        <option value="draft">Draft</option>
+        <option value="approved">Approved</option>
+        <option value="needs_changes">Needs changes</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <select id="filter-severity" onchange="loadReviewList()">
+        <option value="all">All severities</option>
+        <option value="SEV1">SEV1</option>
+        <option value="SEV2">SEV2</option>
+        <option value="SEV3">SEV3</option>
+      </select>
+    </div>
+    <div id="pm-list"><div class="placeholder">Loading&hellip;</div></div>
+  </div>
+  <div class="review-detail" id="review-detail">
+    <div class="detail-scroll">
+      <div class="placeholder" style="margin-top:80px;">Select a post-mortem to review</div>
     </div>
   </div>
 </div>
@@ -357,6 +452,247 @@ function renderResults(pm, data, lastEval) {
 }
 
 loadScenarios();
+
+// ── Tab switching ──────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('view-pipeline').style.display = tab === 'pipeline' ? '' : 'none';
+  document.getElementById('view-review').style.display = tab === 'review' ? '' : 'none';
+  document.getElementById('tab-pipeline').classList.toggle('active', tab === 'pipeline');
+  document.getElementById('tab-review').classList.toggle('active', tab === 'review');
+  if (tab === 'review') loadReviewList();
+}
+
+// ── Review list ────────────────────────────────────
+let _currentPMId = null;
+
+async function loadReviewList() {
+  if (IS_STATIC) {
+    document.getElementById('pm-list').innerHTML =
+      '<div class="placeholder" style="font-size:12px;padding:20px;">Review requires the local server.<br>Run: <code>uvicorn demo.app:app --reload</code></div>';
+    return;
+  }
+  const status = document.getElementById('filter-status').value;
+  const severity = document.getElementById('filter-severity').value;
+  const res = await fetch(`/postmortems?status=${status}&severity=${severity}`);
+  if (!res.ok) {
+    document.getElementById('pm-list').innerHTML = '<div class="placeholder">Failed to load. <a href="#" onclick="loadReviewList();return false">Retry</a></div>';
+    return;
+  }
+  const pms = await res.json();
+  if (pms.length === 0) {
+    document.getElementById('pm-list').innerHTML = '<div class="placeholder" style="font-size:12px;padding:20px;">No post-mortems match these filters.</div>';
+    return;
+  }
+  document.getElementById('pm-list').innerHTML = pms.map(pm => {
+    const evalClass = pm.evaluator_total >= 0.80 ? 'eval-pass' : pm.evaluator_total >= 0.60 ? 'eval-warn' : 'eval-fail';
+    const statusLabel = pm.status === 'needs_changes' ? 'Needs changes' : pm.status.charAt(0).toUpperCase() + pm.status.slice(1);
+    const date = new Date(pm.started_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    return `<div class="pm-card${_currentPMId === pm.id ? ' active' : ''}" onclick="openPMDetail('${pm.id}', this)">
+      <div class="pm-card-title"><span class="severity ${pm.severity}">${pm.severity}</span>${pm.title}</div>
+      <div class="pm-card-meta">
+        <span class="pm-date">${date}</span>
+        <span class="eval-badge ${evalClass}">${pm.evaluator_total.toFixed(2)}</span>
+        <span class="status-badge status-${pm.status}">${statusLabel}</span>
+      </div>
+      ${pm.last_reviewer ? `<div class="pm-reviewer">Reviewed by ${pm.last_reviewer}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Post-mortem detail ─────────────────────────────
+async function openPMDetail(id, cardEl) {
+  _currentPMId = id;
+  document.querySelectorAll('.pm-card').forEach(c => c.classList.remove('active'));
+  if (cardEl) cardEl.classList.add('active');
+  const res = await fetch(`/postmortems/${id}`);
+  if (!res.ok) {
+    document.getElementById('review-detail').innerHTML = '<div class="detail-scroll"><div class="placeholder">Post-mortem not found.</div></div>';
+    return;
+  }
+  const data = await res.json();
+  renderDetail(data);
+}
+
+function renderDetail(data) {
+  const pm = data.postmortem;
+  const inc = pm.incident;
+  const scores = pm.evaluator_scores;
+  const history = data.review_history || [];
+  const status = data.status;
+  const scoreColor = scores.total >= 0.80 ? 'var(--green)' : scores.total >= 0.60 ? 'var(--yellow)' : 'var(--red)';
+  const statusLabel = status === 'needs_changes' ? 'Needs changes' : status.charAt(0).toUpperCase() + status.slice(1);
+  const startDate = new Date(inc.started_at).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric', timeZone:'UTC'});
+
+  const dimLabels = [
+    ['Timeline Completeness', scores.timeline_completeness],
+    ['Root Cause Clarity', scores.root_cause_clarity],
+    ['Action Item Quality', scores.action_item_quality],
+    ['Executive Summary', scores.executive_summary_clarity],
+    ['Similar Incidents', scores.similar_incidents_referenced],
+  ];
+
+  const historyHtml = history.length === 0
+    ? '<div style="color:var(--muted);font-size:12px;">No reviews yet.</div>'
+    : history.map(h => {
+        const actionLabel = h.action === 'approve' ? 'Approved' : h.action === 'request_changes' ? 'Changes Requested' : 'Rejected';
+        const actionColor = h.action === 'approve' ? 'var(--green)' : h.action === 'request_changes' ? 'var(--orange)' : 'var(--red)';
+        const ts = new Date(h.timestamp).toLocaleString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'UTC'});
+        return `<div class="history-entry">
+          <div><span class="status-badge" style="background:rgba(0,0,0,0.2);color:${actionColor}">${actionLabel}</span></div>
+          <div>
+            <div class="history-meta">${h.reviewer} &mdash; ${ts}</div>
+            ${h.comment ? `<div class="history-comment">"${h.comment}"</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+
+  const actionItemsHtml = (pm.action_items || []).map(ai => `
+    <tr>
+      <td>${ai.title}</td>
+      <td>${ai.owner_role}</td>
+      <td>${ai.deadline_days}d</td>
+      <td><span class="priority ${ai.priority}">${ai.priority}</span></td>
+      <td style="color:var(--accent)">${ai.type}</td>
+    </tr>`).join('');
+
+  document.getElementById('review-detail').innerHTML = `
+    <div class="detail-scroll">
+      <div class="detail-header">
+        <div class="detail-title"><span class="severity ${inc.severity}">${inc.severity}</span> ${inc.title}</div>
+        <div class="detail-meta">
+          <span>${inc.id}</span>
+          <span>${startDate}</span>
+          <span>${pm.resolution_duration_minutes} min outage</span>
+          <span>Services: ${inc.affected_services.join(', ')}</span>
+          <span class="status-badge status-${status}">${statusLabel}</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Evaluator Score</h3>
+        <div class="score-total-row">
+          <div class="score-big" style="color:${scoreColor}">${scores.total.toFixed(2)}</div>
+          <span class="passed-badge ${scores.total >= 0.80 ? 'badge-pass' : 'badge-fail'}">${scores.total >= 0.80 ? '✓ PASSED' : '✗ BELOW THRESHOLD'}</span>
+          ${pm.revision_count > 0 ? `<span class="revision-badge">${pm.revision_count} revision(s)</span>` : ''}
+        </div>
+        <div class="score-bars">${dimLabels.map(([label, val]) => {
+          const pct = (val * 100).toFixed(0);
+          const bc = val >= 0.80 ? '#3fb950' : val >= 0.60 ? '#d29922' : '#f85149';
+          return `<div class="score-bar-row">
+            <span class="score-bar-label">${label}</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:${pct}%;background:${bc}"></div></div>
+            <span class="score-bar-val" style="color:${bc}">${val.toFixed(2)}</span>
+          </div>`;
+        }).join('')}</div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Executive Summary</h3>
+        <div class="executive-summary">${pm.executive_summary}</div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Root Cause</h3>
+        <div class="root-cause-primary">${pm.root_cause.primary}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Contributing factors:</div>
+        <ul class="contributing">${pm.root_cause.contributing_factors.map(f => `<li>${f}</li>`).join('')}</ul>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);">Trigger: <span style="color:var(--text)">${pm.root_cause.trigger}</span></div>
+        <div style="font-size:12px;color:var(--muted);">Blast radius: <span style="color:var(--text)">${pm.root_cause.blast_radius}</span></div>
+        <div style="font-size:12px;color:var(--muted);">Confidence: <span class="passed-badge ${pm.root_cause.confidence === 'HIGH' ? 'badge-pass' : 'badge-fail'}">${pm.root_cause.confidence}</span></div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Action Items</h3>
+        <table class="ai-table">
+          <thead><tr><th>Title</th><th>Owner</th><th>Deadline</th><th>Priority</th><th>Type</th></tr></thead>
+          <tbody>${actionItemsHtml}</tbody>
+        </table>
+      </div>
+
+      <div class="detail-section">
+        <h3>Timeline (${pm.timeline.events.length} events)</h3>
+        ${pm.timeline.events.map(e => {
+          const t = new Date(e.timestamp);
+          const time = String(t.getUTCHours()).padStart(2,'0') + ':' + String(t.getUTCMinutes()).padStart(2,'0');
+          return `<div class="timeline-event">
+            <span class="ev-time">${time}</span>
+            <span class="ev-sig sig-${e.significance}">&#9679;</span>
+            <span>${e.description}</span>
+          </div>`;
+        }).join('')}
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;">Detection lag: ${pm.timeline.detection_lag_minutes} min</div>
+      </div>
+
+      <div class="detail-section">
+        <h3>Lessons Learned</h3>
+        <ul class="contributing">${pm.lessons_learned.map(l => `<li style="color:var(--text)">${l}</li>`).join('')}</ul>
+      </div>
+
+      <div class="detail-section">
+        <h3>Review History</h3>
+        ${historyHtml}
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <div class="action-bar-inputs">
+        <input type="text" id="reviewer-name" placeholder="Your name (required)" />
+        <textarea id="review-comment" placeholder="Comment (required for Request Changes, optional otherwise)"></textarea>
+      </div>
+      <div class="action-btns">
+        <button class="btn btn-approve" onclick="submitReview('approve')">Approve</button>
+        <button class="btn btn-changes" onclick="submitReview('request_changes')">Request Changes</button>
+        <button class="btn btn-reject" onclick="submitReview('reject')">Reject</button>
+        <span id="action-feedback"></span>
+      </div>
+    </div>
+  `;
+}
+
+// ── Submit review ──────────────────────────────────
+async function submitReview(action) {
+  const nameEl = document.getElementById('reviewer-name');
+  const commentEl = document.getElementById('review-comment');
+  const feedbackEl = document.getElementById('action-feedback');
+  const name = nameEl.value.trim();
+  const comment = commentEl.value.trim();
+
+  nameEl.classList.remove('error');
+  commentEl.classList.remove('error');
+  feedbackEl.className = '';
+  feedbackEl.textContent = '';
+
+  if (!name) {
+    nameEl.classList.add('error');
+    feedbackEl.className = 'action-error';
+    feedbackEl.textContent = 'Reviewer name is required.';
+    return;
+  }
+  if (action === 'request_changes' && !comment) {
+    commentEl.classList.add('error');
+    feedbackEl.className = 'action-error';
+    feedbackEl.textContent = 'Comment is required when requesting changes.';
+    return;
+  }
+
+  const res = await fetch(`/postmortems/${_currentPMId}/review`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action, reviewer: name, comment: comment || null}),
+  });
+  if (!res.ok) {
+    feedbackEl.className = 'action-error';
+    feedbackEl.textContent = 'Failed to save review. Try again.';
+    return;
+  }
+  const data = await res.json();
+  const label = action === 'approve' ? 'Approved' : action === 'request_changes' ? 'Changes requested' : 'Rejected';
+  feedbackEl.className = 'action-success';
+  feedbackEl.textContent = `✓ ${label} — recorded at ${new Date(data.recorded_at).toLocaleTimeString('en-US', {timeZone:'UTC'})} UTC`;
+  // Refresh detail and list
+  await openPMDetail(_currentPMId, null);
+  await loadReviewList();
+}
 </script>
 </body>
 </html>
