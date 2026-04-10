@@ -234,6 +234,7 @@
         <option value="SEV1">SEV1</option>
         <option value="SEV2">SEV2</option>
         <option value="SEV3">SEV3</option>
+        <option value="SEV4">SEV4</option>
       </select>
     </div>
     <div id="pm-list"><div class="placeholder">Loading&hellip;</div></div>
@@ -453,6 +454,11 @@ function renderResults(pm, data, lastEval) {
 
 loadScenarios();
 
+// ── Utilities ─────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ── Tab switching ──────────────────────────────────
 function switchTab(tab) {
   document.getElementById('view-pipeline').style.display = tab === 'pipeline' ? '' : 'none';
@@ -494,7 +500,7 @@ async function loadReviewList() {
         <span class="eval-badge ${evalClass}">${pm.evaluator_total.toFixed(2)}</span>
         <span class="status-badge status-${pm.status}">${statusLabel}</span>
       </div>
-      ${pm.last_reviewer ? `<div class="pm-reviewer">Reviewed by ${pm.last_reviewer}</div>` : ''}
+      ${pm.last_reviewer ? `<div class="pm-reviewer">Reviewed by ${escHtml(pm.last_reviewer)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -516,7 +522,7 @@ async function openPMDetail(id, cardEl) {
 function renderDetail(data) {
   const pm = data.postmortem;
   const inc = pm.incident;
-  const scores = pm.evaluator_scores;
+  const scores = pm.evaluator_scores || {};
   const history = data.review_history || [];
   const status = data.status;
   const scoreColor = scores.total >= 0.80 ? 'var(--green)' : scores.total >= 0.60 ? 'var(--yellow)' : 'var(--red)';
@@ -540,7 +546,7 @@ function renderDetail(data) {
         return `<div class="history-entry">
           <div><span class="status-badge" style="background:rgba(0,0,0,0.2);color:${actionColor}">${actionLabel}</span></div>
           <div>
-            <div class="history-meta">${h.reviewer} &mdash; ${ts}</div>
+            <div class="history-meta">${escHtml(h.reviewer)} &mdash; ${ts}</div>
             ${h.comment ? `<div class="history-comment">"${h.comment}"</div>` : ''}
           </div>
         </div>`;
@@ -562,7 +568,7 @@ function renderDetail(data) {
         <div class="detail-meta">
           <span>${inc.id}</span>
           <span>${startDate}</span>
-          <span>${pm.resolution_duration_minutes} min outage</span>
+          <span>${pm.timeline.resolution_duration_minutes} min outage (UTC)</span>
           <span>Services: ${inc.affected_services.join(', ')}</span>
           <span class="status-badge status-${status}">${statusLabel}</span>
         </div>
@@ -689,7 +695,8 @@ async function submitReview(action) {
   const label = action === 'approve' ? 'Approved' : action === 'request_changes' ? 'Changes requested' : 'Rejected';
   feedbackEl.className = 'action-success';
   feedbackEl.textContent = `✓ ${label} — recorded at ${new Date(data.recorded_at).toLocaleTimeString('en-US', {timeZone:'UTC'})} UTC`;
-  // Refresh detail and list
+  // Brief pause so the user sees the confirmation before the view refreshes
+  await new Promise(r => setTimeout(r, 1200));
   await openPMDetail(_currentPMId, null);
   await loadReviewList();
 }
