@@ -547,7 +547,7 @@ function renderDetail(data) {
           <div><span class="status-badge" style="background:rgba(0,0,0,0.2);color:${actionColor}">${actionLabel}</span></div>
           <div>
             <div class="history-meta">${escHtml(h.reviewer)} &mdash; ${ts}</div>
-            ${h.comment ? `<div class="history-comment">"${h.comment}"</div>` : ''}
+            ${h.comment ? `<div class="history-comment">"${escHtml(h.comment)}"</div>` : ''}
           </div>
         </div>`;
       }).join('');
