@@ -32,6 +32,7 @@ chroma_db/
 audit/
 postmortems/
 watcher_state/
+demo/reviews.json
 
 # Local config (template is retro-pilot.example.yml)
 retro-pilot.yml

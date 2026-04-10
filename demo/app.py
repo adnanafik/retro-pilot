@@ -6,10 +6,13 @@ simulated SSE streaming — no API calls, no credentials required.
 DEMO_MODE=false + ANTHROPIC_API_KEY: live agent execution.
 
 Endpoints:
-  GET /scenarios            — list available scenarios
-  GET /run/{scenario_id}    — stream agent steps as SSE events
-  GET /scenario/{scenario_id} — return full scenario JSON
-  GET /health               — health check
+  GET /scenarios                         — list available scenarios
+  GET /run/{scenario_id}                 — stream agent steps as SSE events
+  GET /scenario/{scenario_id}            — return full scenario JSON
+  GET /health                            — health check
+  GET /postmortems                       — list post-mortems with status/severity filters
+  GET /postmortems/{incident_id}         — get post-mortem detail with review history
+  POST /postmortems/{incident_id}/review — record a review action (approve/request_changes/reject)
 """
 from __future__ import annotations
 
@@ -33,7 +36,7 @@ app = FastAPI(title="retro-pilot demo", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -153,6 +156,8 @@ _ACTION_TO_STATUS = {
 
 
 def _load_postmortems() -> list[dict]:
+    if not MOCK_POSTMORTEMS_FILE.exists():
+        return []
     return json.loads(MOCK_POSTMORTEMS_FILE.read_text())
 
 
@@ -174,19 +179,20 @@ def _derive_status(incident_id: str, reviews: list[dict]) -> str:
 async def list_postmortems(status: str = "all", severity: str = "all") -> list[dict]:
     postmortems = _load_postmortems()
     reviews = _load_reviews()
+    # Pre-group reviews by incident_id to avoid O(n²) scan
+    reviews_by_id: dict[str, list[dict]] = {}
+    for r in reviews:
+        reviews_by_id.setdefault(r["incident_id"], []).append(r)
     result = []
     for pm in postmortems:
         inc = pm["incident"]
-        derived_status = _derive_status(inc["id"], reviews)
+        inc_reviews = sorted(reviews_by_id.get(inc["id"], []), key=lambda r: r["timestamp"])
+        latest = inc_reviews[-1] if inc_reviews else None
+        derived_status = _ACTION_TO_STATUS.get(latest["action"], latest["action"]) if latest else "draft"
         if status != "all" and derived_status != status:
             continue
         if severity != "all" and inc["severity"] != severity:
             continue
-        matching = sorted(
-            [r for r in reviews if r["incident_id"] == inc["id"]],
-            key=lambda r: r["timestamp"],
-        )
-        last_review = matching[-1] if matching else None
         result.append({
             "id": inc["id"],
             "title": inc["title"],
@@ -195,8 +201,8 @@ async def list_postmortems(status: str = "all", severity: str = "all") -> list[d
             "resolution_duration_minutes": pm["resolution_duration_minutes"],
             "evaluator_total": pm["evaluator_scores"]["total"],
             "status": derived_status,
-            "last_reviewer": last_review["reviewer"] if last_review else None,
-            "last_reviewed_at": last_review["timestamp"] if last_review else None,
+            "last_reviewer": latest["reviewer"] if latest else None,
+            "last_reviewed_at": latest["timestamp"] if latest else None,
         })
     result.sort(key=lambda x: x["started_at"], reverse=True)
     return result
@@ -215,7 +221,6 @@ async def get_postmortem(incident_id: str) -> dict | JSONResponse:
     )
     return {
         "postmortem": pm,
-        "evaluator_scores": pm["evaluator_scores"],
         "review_history": matching_reviews,
         "status": _derive_status(incident_id, reviews),
     }

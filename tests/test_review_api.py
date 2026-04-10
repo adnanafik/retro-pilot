@@ -76,12 +76,9 @@ def test_list_card_fields(client):
     resp = client.get("/postmortems")
     assert resp.status_code == 200
     pm = resp.json()[0]
-    assert "id" in pm
-    assert "title" in pm
-    assert "severity" in pm
-    assert "started_at" in pm
-    assert "evaluator_total" in pm
-    assert "status" in pm
+    for field in ("id", "title", "severity", "started_at", "evaluator_total",
+                  "status", "last_reviewer", "last_reviewed_at"):
+        assert field in pm, f"Missing field: {field}"
 
 
 def test_review_approve_persists(client):
@@ -100,6 +97,7 @@ def test_review_approve_persists(client):
 
 
 def test_review_double_approve_idempotent(client):
+    """Two approve actions: history accumulates but derived status stays 'approved'."""
     for _ in range(2):
         resp = client.post("/postmortems/INC-2026-0142/review", json={
             "action": "approve",
@@ -107,9 +105,10 @@ def test_review_double_approve_idempotent(client):
             "comment": None,
         })
         assert resp.status_code == 200
-    list_resp = client.get("/postmortems?status=approved")
-    approved_ids = [pm["id"] for pm in list_resp.json()]
-    assert approved_ids.count("INC-2026-0142") == 1  # still just one entry in list
+    detail_resp = client.get("/postmortems/INC-2026-0142")
+    data = detail_resp.json()
+    assert len(data["review_history"]) == 2
+    assert data["status"] == "approved"
 
 
 def test_review_missing_reviewer_returns_422(client):
