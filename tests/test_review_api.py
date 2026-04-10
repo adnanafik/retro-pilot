@@ -29,13 +29,30 @@ def client(tmp_path, monkeypatch):
 
 @pytest.fixture()
 def client_with_seed(tmp_path, monkeypatch):
-    """TestClient with pre-seeded reviews.json."""
+    """TestClient with pre-seeded reviews.json (inline — demo/reviews.json is gitignored)."""
     src_pms = FIXTURES_DIR / "mock_postmortems.json"
     dest_pms = tmp_path / "mock_postmortems.json"
     shutil.copy(src_pms, dest_pms)
-    src_reviews = FIXTURES_DIR / "reviews.json"
     dest_reviews = tmp_path / "reviews.json"
-    shutil.copy(src_reviews, dest_reviews)
+    seed = [
+        {
+            "review_id": "r001",
+            "incident_id": "INC-2026-0156",
+            "action": "approve",
+            "reviewer": "Alice Chen",
+            "comment": "Thorough root cause analysis. Approved.",
+            "timestamp": "2026-01-22T11:15:00Z",
+        },
+        {
+            "review_id": "r002",
+            "incident_id": "INC-2026-0171",
+            "action": "request_changes",
+            "reviewer": "Bob Martinez",
+            "comment": "Action item #2 missing acceptance_criteria.",
+            "timestamp": "2026-01-29T10:30:00Z",
+        },
+    ]
+    dest_reviews.write_text(json.dumps(seed))
     monkeypatch.setattr(app_module, "MOCK_POSTMORTEMS_FILE", dest_pms)
     monkeypatch.setattr(app_module, "REVIEWS_FILE", dest_reviews)
     return TestClient(app_module.app)
