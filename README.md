@@ -71,9 +71,20 @@ docker compose run --rm test                     # run test suite
 DEMO_MODE=true uvicorn demo.app:app --port 8000  # start demo server
 ```
 
-Open http://localhost:8000, select a scenario.
+Open http://localhost:8000.
 
-**Live mode** (requires `ANTHROPIC_API_KEY`):
+### Demo UI
+
+The demo has two tabs:
+
+**Pipeline** — select one of three pre-recorded scenarios (Redis cascade SEV1, deploy regression SEV2, certificate expiry SEV2) and watch the agent pipeline run: evidence collection, timeline reconstruction, root cause analysis, action item generation, post-mortem assembly, and evaluator scoring with a revision cycle.
+
+**Review** — browse the generated post-mortems, inspect evaluator score breakdowns, and record approvals, change requests, or rejections with your name. Review actions persist server-side. This tab requires the FastAPI backend and is not available in the GitHub Pages static demo.
+
+### Live mode
+
+Requires `ANTHROPIC_API_KEY`. Triggers real agent execution against a live incident:
+
 ```bash
 python scripts/run_postmortem.py \
   --incident-id INC-2026-0001 \
@@ -85,6 +96,68 @@ python scripts/run_postmortem.py \
   --slack-channel "#incidents" \
   --reported-by oncall
 ```
+
+---
+
+## Production deployment
+
+### Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Claude API key for all agent LLM calls |
+| `DEMO_MODE` | No (default `false`) | Set `true` to serve pre-recorded scenarios with no API calls |
+| `GITHUB_TOKEN` | No | Personal access token for `GetGitHistoryTool` — read:repo scope |
+| `SLACK_BOT_TOKEN` | No | Bot token for `GetSlackThreadTool` — `channels:history` scope |
+
+Create a `.env` file (never commit it):
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+GITHUB_TOKEN=ghp_...
+SLACK_BOT_TOKEN=xoxb-...
+DEMO_MODE=false
+```
+
+### Docker Compose
+
+```bash
+docker compose up -d retro-pilot-demo
+```
+
+The `chroma_db/` directory is volume-mounted at `./chroma_db` — this is where ChromaDB persists post-mortems across restarts. Back it up if it matters.
+
+### Configuration
+
+Copy the example config and edit for your environment:
+
+```bash
+cp retro-pilot.example.yml retro-pilot.yml
+```
+
+Key settings in `retro-pilot.yml`:
+
+```yaml
+evaluator:
+  pass_threshold: 0.80      # minimum score to accept a post-mortem
+  max_revision_cycles: 3    # hard cap on LLM revision loops
+
+knowledge:
+  similarity_threshold: 0.65   # minimum cosine similarity to surface a past incident
+  top_k: 3                     # how many similar incidents to retrieve
+
+tools:
+  logs:
+    endpoint: "https://logs.internal/api"   # your log aggregation API
+  metrics:
+    endpoint: "https://metrics.internal"    # CloudWatch / Datadog / etc.
+```
+
+### Triggering post-mortems automatically
+
+The intended production pattern is to call `scripts/run_postmortem.py` from your incident management system when an incident is resolved — e.g. a PagerDuty webhook, an ops-pilot post-resolution hook, or a Slack slash command.
+
+All output is `draft=True` until a human approves it in the Review tab. Nothing is published or distributed without explicit review.
 
 ---
 
