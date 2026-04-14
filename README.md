@@ -2,6 +2,10 @@
 
 > ops-pilot catches the failure. retro-pilot learns from it.
 
+**Built by [Adnan Khan](https://adnankhan.me)** — Sr. Director of AI Engineering · [LinkedIn](https://linkedin.com/in/passionateforinnovation) · [Portfolio](https://adnankhan.me)
+
+---
+
 retro-pilot is an autonomous incident post-mortem system. It collects evidence, reconstructs timelines, performs root cause analysis, and generates structured post-mortems — automatically, after every resolved incident. Post-mortems are stored in a semantic vector database so future incidents can learn from past ones.
 
 **Part of a two-project series with [ops-pilot](https://github.com/adnanafik/ops-pilot)** — ops-pilot responds to CI/CD failures in real time; retro-pilot learns from them after the fact.
