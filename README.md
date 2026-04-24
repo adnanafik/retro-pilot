@@ -2,7 +2,13 @@
 
 > ops-pilot catches the failure. retro-pilot learns from it.
 
-**Built by [Adnan Khan](https://adnankhan.me)** — Sr. Director of AI Engineering · [LinkedIn](https://linkedin.com/in/passionateforinnovation) · [Portfolio](https://adnankhan.me)
+> **Who this is for:** platform and SRE teams that want every resolved incident to produce a structured post-mortem — without the on-call engineer having to write one from scratch.
+
+> Built by **[Adnan Khan](https://adnankhan.me)** · [LinkedIn](https://linkedin.com/in/passionateforinnovation)
+
+[![Tests](https://img.shields.io/github/actions/workflow/status/adnanafik/retro-pilot/retro-pilot-ci.yml?label=tests&style=flat-square)](https://github.com/adnanafik/retro-pilot/actions)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue?style=flat-square)](https://www.python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
 ---
 
@@ -54,6 +60,17 @@ Every draft post-mortem is scored against a 5-dimension rubric (timeline complet
 
 ### Semantic vector store
 Post-mortems are embedded with sentence-transformers (all-MiniLM-L6-v2) and stored in ChromaDB. "Redis connection pool exhaustion" and "connection pool timeout" match even though they share no tokens. ops-pilot's token Jaccard works well for structured CI failure data; post-mortems are prose-heavy and need semantic similarity.
+
+---
+
+## How it compares to alternatives
+
+| | retro-pilot | Blameless | incident.io | FireHydrant | Rootly |
+|---|---|---|---|---|---|
+| **Category** | Autonomous agent (single-purpose) | IM platform | IM platform | IM platform | IM platform |
+| **Post-mortem** | Fully generated from evidence | Human-authored with AI help | Human-authored with AI help | Template-driven | Template-driven |
+| **Evidence collection** | Automatic (Log / Metrics / Git / Slack workers) | Manual + integrations | Manual + integrations | Manual + integrations | Manual + integrations |
+| **Evaluation** | LLM-as-judge, 3-cycle revision loop | Human review | Human review | Human review | Human review |
 
 ---
 
@@ -197,6 +214,12 @@ retro-pilot/
 ├── scripts/         # CLI entry point
 └── tests/           # pytest suite (>=85% coverage on agents + evaluator)
 ```
+
+---
+
+## About the author
+
+Adnan Khan builds AI systems for platform engineering teams. [LinkedIn](https://linkedin.com/in/passionateforinnovation) · [adnankhan.me](https://adnankhan.me)
 
 ---
 
