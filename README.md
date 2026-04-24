@@ -63,6 +63,17 @@ Post-mortems are embedded with sentence-transformers (all-MiniLM-L6-v2) and stor
 
 ---
 
+## How it compares to alternatives
+
+| | retro-pilot | Blameless | incident.io | FireHydrant | Rootly |
+|---|---|---|---|---|---|
+| **Category** | Autonomous agent (single-purpose) | IM platform | IM platform | IM platform | IM platform |
+| **Post-mortem** | Fully generated from evidence | Human-authored with AI help | Human-authored with AI help | Template-driven | Template-driven |
+| **Evidence collection** | Automatic (Log / Metrics / Git / Slack workers) | Manual + integrations | Manual + integrations | Manual + integrations | Manual + integrations |
+| **Evaluation** | LLM-as-judge, 3-cycle revision loop | Human review | Human review | Human review | Human review |
+
+---
+
 ## Knowledge base
 
 Every post-mortem that passes evaluation is stored in ChromaDB:
