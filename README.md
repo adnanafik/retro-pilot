@@ -2,6 +2,8 @@
 
 > ops-pilot catches the failure. retro-pilot learns from it.
 
+> **Who this is for:** platform and SRE teams that want every resolved incident to produce a structured post-mortem — without the on-call engineer having to write one from scratch.
+
 **Built by [Adnan Khan](https://adnankhan.me)** — Sr. Director of AI Engineering · [LinkedIn](https://linkedin.com/in/passionateforinnovation) · [Portfolio](https://adnankhan.me)
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/adnanafik/retro-pilot/retro-pilot-ci.yml?label=tests&style=flat-square)](https://github.com/adnanafik/retro-pilot/actions)
