@@ -4,6 +4,10 @@
 
 **Built by [Adnan Khan](https://adnankhan.me)** — Sr. Director of AI Engineering · [LinkedIn](https://linkedin.com/in/passionateforinnovation) · [Portfolio](https://adnankhan.me)
 
+[![Tests](https://img.shields.io/github/actions/workflow/status/adnanafik/retro-pilot/retro-pilot-ci.yml?label=tests&style=flat-square)](https://github.com/adnanafik/retro-pilot/actions)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue?style=flat-square)](https://www.python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+
 ---
 
 retro-pilot is an autonomous incident post-mortem system. It collects evidence, reconstructs timelines, performs root cause analysis, and generates structured post-mortems — automatically, after every resolved incident. Post-mortems are stored in a semantic vector database so future incidents can learn from past ones.
